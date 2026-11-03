@@ -1,0 +1,11 @@
+# Runtime dependencies (pinned). Bump deliberately; see README "Dependencies".
+fastapi==0.162.0
+uvicorn[standard]==0.54.0
+SQLAlchemy[asyncio]==2.1.6
+psycopg[binary,pool]==3.3.7
+alembic==1.20.1
+argon2-cffi==25.1.0
+PyJWT==2.15.1
+cryptography==50.0.2
+email-validator==2.3.0
+pydantic==2.14.2
