@@ -162,3 +162,27 @@ async def test_a_donor_cannot_read_someone_elses_donation(client: AsyncClient) -
     client.cookies.clear()
     await _signed_in(client, email="other@example.org")
     assert (await client.get(f"/v1/donations/{d['id']}")).status_code == 404
+
+
+async def test_history_lists_only_my_donations_newest_first_with_receipt_numbers(
+    client: AsyncClient,
+) -> None:
+    await _signed_in(client, email="other@example.org")
+    slug = await _live_campaign(client)
+    await _donate(client, slug)
+    client.cookies.clear()
+    await _signed_in(client)
+    older = (await _donate(client, slug, amount=20_000)).json()
+    newer = (await _donate(client, slug, amount=30_000)).json()
+    body, headers = _signed({"gateway_ref": older["gateway_ref"], "event": "payment.succeeded"})
+    await client.post(WEBHOOK, content=body, headers=headers)
+
+    rows = (await client.get("/v1/donations")).json()
+
+    assert [r["id"] for r in rows] == [newer["id"], older["id"]]
+    assert rows[0]["receipt_number"] is None
+    assert rows[1]["receipt_number"].startswith("RCPT/")
+
+
+async def test_history_requires_sign_in(client: AsyncClient) -> None:
+    assert (await client.get("/v1/donations")).status_code == 401

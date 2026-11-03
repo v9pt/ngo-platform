@@ -22,11 +22,11 @@ Status as of 2026-11-03 (Day 1 of 7). Take-home brief #2. Delete this file befor
 - `backend/app/seed.py`: idempotent seed (`python -m app.seed`). Demo accounts `admin@`, `editor@`, `donor@demo.example`, password `DemoPass#2026` (public demo credential), 7 illustrative schemes (rules as JSON), 3 campaigns, 1 approved + 1 AI-draft summary.
 - Tests in `backend/tests/` run against a real Postgres and the real migration.
 
-## Done on Day 2 (66 tests pass, ruff + mypy clean)
+## Done on Day 2 (68 tests pass, ruff + mypy clean)
 - `backend/app/receipts.py`: `issue_receipt` (donation row lock, then FY counter upsert, snapshot, mark paid). Concurrency + replay + April rollover tests in `tests/test_receipts.py`.
 - `backend/app/routers/donations.py`: `POST /v1/donations` (Idempotency-Key required), `GET /v1/donations/{id}` (owner only, 404 otherwise), `POST /v1/webhooks/mock-gateway` (HMAC-SHA256 of raw body in `X-Signature`; needs new env `GATEWAY_WEBHOOK_SECRET`, 32+ chars).
 - Local Postgres for tests: Homebrew `postgresql@15` binaries; use a short unix-socket dir (`-k /tmp/pgsock`).
-- Still to do from Day 2: PDF rendering (WeasyPrint), donor history endpoint.
+- `GET /v1/donations` = donor history (done). Still to do from Day 2: PDF rendering (WeasyPrint; needs pango, not installed locally yet).
 
 ## Not done yet
 - `frontend/` is the **unmodified create-next-app output** (Next 16.4.4, React 19.3.0, no Tailwind). It is not committed. Nothing built on it.

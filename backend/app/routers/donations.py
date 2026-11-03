@@ -90,6 +90,22 @@ async def _load_out(session: AsyncSession, d: Donation) -> DonationOut:
     return _out(d, slug or "", number)
 
 
+@router.get("/v1/donations", response_model=list[DonationOut])
+async def list_my_donations(
+    user: User = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+) -> list[DonationOut]:
+    rows = await session.execute(
+        select(Donation, Campaign.slug, Receipt.number)
+        .join(Campaign, Campaign.id == Donation.campaign_id)
+        .outerjoin(Receipt, Receipt.donation_id == Donation.id)
+        .where(Donation.donor_id == user.id)
+        .order_by(Donation.created_at.desc(), Donation.id)
+        .limit(200)
+    )
+    return [_out(d, slug, number) for d, slug, number in rows.all()]
+
+
 @router.get("/v1/donations/{donation_id}", response_model=DonationOut)
 async def get_donation(
     donation_id: uuid.UUID,
