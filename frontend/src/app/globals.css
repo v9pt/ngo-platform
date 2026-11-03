@@ -1,0 +1,94 @@
+/* Design tokens. Light is the default; dark applies for the system preference unless the
+   user chose a theme explicitly (data-theme on <html>, set from a cookie on the server). */
+:root {
+  --bg: #fbf8f3;
+  --surface: #ffffff;
+  --text: #1f1a17;
+  --muted: #5e544d;
+  --border: #e3dbd1;
+  --brand: #9a3b1c;
+  --brand-contrast: #ffffff;
+  --match: #1d6b3a;
+  --possible: #8a5a00;
+  --excluded: #6b6b6b;
+  --focus: #1456d6;
+  --radius: 10px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #17120f;
+    --surface: #221b17;
+    --text: #f3ece4;
+    --muted: #b9ab9f;
+    --border: #3a2f28;
+    --brand: #f0905f;
+    --brand-contrast: #1a0f09;
+    --match: #6fd394;
+    --possible: #f2c264;
+    --excluded: #a0a0a0;
+    --focus: #8ab4ff;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #17120f;
+  --surface: #221b17;
+  --text: #f3ece4;
+  --muted: #b9ab9f;
+  --border: #3a2f28;
+  --brand: #f0905f;
+  --brand-contrast: #1a0f09;
+  --match: #6fd394;
+  --possible: #f2c264;
+  --excluded: #a0a0a0;
+  --focus: #8ab4ff;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Noto Sans Devanagari", system-ui, -apple-system, "Segoe UI", sans-serif;
+  line-height: 1.6;
+  font-size: 1.0625rem;
+}
+a { color: var(--brand); }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.wrap { max-width: 64rem; margin: 0 auto; padding: 0 1rem; }
+header.site { border-bottom: 1px solid var(--border); background: var(--surface); }
+header.site .wrap { display: flex; flex-wrap: wrap; gap: 0.75rem 1.5rem; align-items: center; padding-block: 0.75rem; }
+header.site nav { display: flex; gap: 1rem; flex: 1; flex-wrap: wrap; }
+header.site .brand { font-weight: 700; text-decoration: none; }
+.controls { display: flex; gap: 0.5rem; align-items: center; }
+.controls form { display: inline; }
+.btn, button, select, input {
+  font: inherit; color: inherit;
+}
+.btn, button {
+  min-height: 44px; padding: 0.4rem 0.9rem; border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--surface); cursor: pointer;
+}
+.btn.primary, button.primary { background: var(--brand); color: var(--brand-contrast); border-color: var(--brand); text-decoration: none; display: inline-flex; align-items: center; }
+select, input[type="number"] {
+  min-height: 44px; padding: 0.4rem 0.6rem; border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--surface); width: 100%;
+}
+main { padding-block: 1.5rem 3rem; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: 0 0 0.75rem; }
+h2 { font-size: 1.25rem; margin: 1.5rem 0 0.5rem; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; }
+.grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
+.muted { color: var(--muted); }
+.badge { display: inline-block; padding: 0.1rem 0.6rem; border-radius: 999px; border: 1px solid currentColor; font-size: 0.875rem; font-weight: 600; }
+.badge.match { color: var(--match); }
+.badge.possible { color: var(--possible); }
+.badge.excluded { color: var(--excluded); }
+.field { margin-bottom: 1rem; }
+.field label { display: block; font-weight: 600; margin-bottom: 0.25rem; }
+.rules { list-style: none; padding: 0; margin: 0.5rem 0 0; }
+.rules li { padding: 0.15rem 0; }
+footer.site { border-top: 1px solid var(--border); padding-block: 1.5rem; color: var(--muted); font-size: 0.9rem; }
+@media (max-width: 40rem) { h1 { font-size: 1.5rem; } }

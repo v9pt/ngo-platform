@@ -33,8 +33,11 @@ Status as of 2026-11-03 (Day 3 of 7 backend work done). Take-home brief #2. Dele
 - `app/routers/schemes.py`: `GET /v1/schemes[?need=]`, `GET /v1/schemes/{code}`, `POST /v1/schemes/check` (published only, best matches first, rules shown).
 - PDF receipt `GET /v1/donations/{id}/receipt.pdf` (WeasyPrint; on macOS tests need `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib`; Docker image needs pango).
 
+## Done on Day 4 (frontend)
+- `frontend/` now has: theme tokens (light/dark/system, cookie-driven, no flash), Hindi-first i18n dictionary + language toggle (`src/lib/i18n.ts`, server actions in `src/app/actions.ts`), home, `/schemes`, `/schemes/[code]`, `/finder` (client form -> `/api/v1/schemes/check`, shows per-rule reasons). `next.config.ts` rewrites `/api/*` to `API_URL` (same-origin, so session cookies work on Day 5). I removed `cacheComponents`/`partialPrefetching` from the create-next-app config: cookie-driven lang/theme needs dynamic rendering. `npm run lint` and `npm run build` pass; checked in the browser pane (Hindi, dark, widow profile gives 3 matches + 3 possible).
+- Not yet: no frontend tests, no mobile/a11y audit (Day 6), scheme detail text fields beyond title/benefit are English only.
+
 ## Not done yet
-- `frontend/` is the **unmodified create-next-app output** (Next 16.4.4, React 19.3.0, no Tailwind). It is not committed. Nothing built on it.
 - No scheme/eligibility endpoints, donation flow, receipt issuing, PDF, CMS, AI summaries, CI, README, Dockerfile, deployment.md, TDD.
 - No GitHub remote yet. Repo must be public with the URL at the top of the TDD.
 
