@@ -10,10 +10,3 @@ export async function setLang(formData: FormData) {
   (await cookies()).set("lang", v, { path: "/", maxAge: YEAR, sameSite: "lax" });
   revalidatePath("/", "layout");
 }
-
-export async function setTheme(formData: FormData) {
-  const raw = formData.get("theme");
-  const v = raw === "light" || raw === "dark" ? raw : "system";
-  (await cookies()).set("theme", v, { path: "/", maxAge: YEAR, sameSite: "lax" });
-  revalidatePath("/", "layout");
-}
