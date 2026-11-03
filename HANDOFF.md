@@ -1,6 +1,6 @@
 # Handoff: NGO donation platform and women's schemes finder
 
-Status as of 2026-11-03 (Day 6 of 7 done). Take-home brief #2. Delete this file before final submission.
+Status as of 2026-11-03 (Day 7 of 7 done; submission steps remain). Take-home brief #2. Delete this file before final submission.
 
 ## Decisions made
 - Stack: Next.js (TypeScript) + FastAPI + Postgres. Managed Postgres, Docker host for the API, Vercel for the frontend.
@@ -50,7 +50,16 @@ Status as of 2026-11-03 (Day 6 of 7 done). Take-home brief #2. Delete this file 
 - Frontend: `/admin` (status table, role-aware workflow buttons) and `/admin/schemes/[code]` (notice editor, draft/edit/approve/reject summaries). Staff UI is English only. Failed server actions surface Next's generic error page (no friendly message yet).
 - A11y/mobile: skip link, main landmark, table captions/scopes, labelled controls, focus ring, reduced-motion, 44px targets, mobile nav wrap. Checked at 375px in the browser; no automated axe run yet.
 
-## Not done yet
+## Done on Day 7
+- Campaign report + masked receipt CSV (admin only, formula-injection safe), `.github/workflows/ci.yml`, `backend/Dockerfile` (pango + Noto fonts), `deployment.md`, `README.md`, `docs/TDD.md`. Final QA: 113 backend tests, ruff, mypy, frontend lint/tsc/build all pass; no secrets found in tracked files.
+- **Not run anywhere:** the Docker build and the CI workflow (no Docker locally, no GitHub remote). The live Anthropic summary call is untested.
+
+## Before submitting
+1. Create the public GitHub repo, push, put its URL at the top of `docs/TDD.md`, confirm CI is green (first real run of the workflow and the Docker image build).
+2. Delete this file (`HANDOFF.md`).
+3. Optional gaps listed in TDD section 10 (PAN entry UI, monthly scheduler, frontend tests).
+
+## Not done yet (historical list, mostly done above)
 - No scheme/eligibility endpoints, donation flow, receipt issuing, PDF, CMS, AI summaries, CI, README, Dockerfile, deployment.md, TDD.
 - No GitHub remote yet. Repo must be public with the URL at the top of the TDD.
 
