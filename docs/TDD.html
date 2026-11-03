@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Technical Design Document: Mahila Vikas Trust</title>
+<style>
+@page { size: A4; margin: 20mm 18mm; @bottom-right { content: counter(page) " / " counter(pages); font-size: 9pt; color: #55587a; } }
+body { font-family: "Noto Sans", "Helvetica Neue", Arial, "Noto Sans Devanagari", sans-serif; color: #1b1f4b; font-size: 10.5pt; line-height: 1.5; }
+h1 { font-size: 22pt; margin: 0 0 2mm; color: #b0155e; line-height: 1.2; }
+h2 { font-size: 14.5pt; margin: 8mm 0 2mm; border-top: 0.6mm solid #b0155e; padding-top: 2mm; break-after: avoid; }
+h3 { font-size: 11.5pt; margin: 5mm 0 1mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; } ul, ol { margin: 0 0 2.5mm; padding-left: 5.5mm; } li { margin-bottom: 1mm; }
+table { border-collapse: collapse; width: 100%; margin: 2mm 0 4mm; font-size: 9.5pt; }
+th { text-align: left; border-bottom: 0.4mm solid #1b1f4b; padding: 1.2mm 2mm 1.2mm 0; }
+td { border-bottom: 0.2mm solid #cfd2e4; padding: 1.2mm 2mm 1.2mm 0; vertical-align: top; }
+tr { break-inside: avoid; }
+code { font-family: Menlo, "DejaVu Sans Mono", monospace; font-size: 9pt; }
+.links { background: #eceef6; padding: 3mm 4mm; margin-bottom: 4mm; }
+figure { margin: 3mm 0 4mm; break-inside: avoid; } figcaption { font-size: 9pt; color: #55587a; margin-top: 1mm; }
+figure img { width: 100%; border: 0.2mm solid #cfd2e4; }
+.pair { display: flex; gap: 4mm; align-items: flex-start; } .pair figure { flex: 1; margin-top: 0; }
+.pair figure.narrow { flex: 0 0 34%; } .narrow img { width: 100%; }
+.mid img { width: 82%; }
+svg text { font-family: "Noto Sans", Arial, sans-serif; }
+</style></head><body>
+
+<h1>Mahila Vikas Trust: schemes finder and donations</h1>
+<p>Technical Design Document. Take-home brief 2, the Bhopal women's livelihoods trust.</p>
+<div class="links">
+<strong>GitHub:</strong> https://github.com/v9pt/ngo-platform<br>
+<strong>Live app:</strong> <!--LIVE-->not deployed yet; run it locally with deployment.md<!--/LIVE-->
+</div>
+
+<h2>1. What I built, and the decision behind it</h2>
+<p>The core build works end to end on sample data: a home page led by a schemes finder, scheme admin, a donation with test payment, and an instant 80G receipt PDF. I chose depth in that slice over breadth.</p>
+<p>Two users shape almost every decision. The first is a woman with limited reading time, probably on a phone, who reads Hindi and needs a straight answer about what she may get. The second is the trust's small office, which cannot afford a wrong number on a receipt or a wrong claim about a scheme. So the two parts that can really hurt someone get the hardest engineering: <strong>receipt numbering</strong> and <strong>eligibility answers</strong>.</p>
+<table>
+<tr><th>Must have</th><th>How it is met</th></tr>
+<tr><td>Main flows, no dead buttons</td><td>26 browser tests drive them on the production build</td></tr>
+<tr><td>Frontend, backend, database, sign-in, roles</td><td>Next.js, FastAPI, PostgreSQL; donor, editor and admin roles checked on the server from the database</td></tr>
+<tr><td>AI works, including when wrong or unsure</td><td>Section 5. Wrong output is caught, disagreement leaves a blank, and failure has a working path</td></tr>
+<tr><td>Polished UI, phone, states</td><td>Section 6. Loading, empty and error screens exist for every data view</td></tr>
+<tr><td>Tests and basic security</td><td>Sections 7 and 8</td></tr>
+</table>
+
+<h2>2. Architecture and why</h2>
+<figure>
+<svg viewBox="0 0 760 190" xmlns="http://www.w3.org/2000/svg" width="100%">
+<defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#1b1f4b"/></marker></defs>
+<g font-size="13" fill="#1b1f4b">
+<rect x="5" y="55" width="130" height="70" rx="8" fill="#eceef6" stroke="#1b1f4b"/><text x="70" y="85" text-anchor="middle" font-weight="700">Browser</text><text x="70" y="105" text-anchor="middle" font-size="11">same origin only</text>
+<rect x="190" y="55" width="150" height="70" rx="8" fill="#fbe4ef" stroke="#b0155e"/><text x="265" y="85" text-anchor="middle" font-weight="700">Next.js site</text><text x="265" y="105" text-anchor="middle" font-size="11">pages, /api rewrite</text>
+<rect x="395" y="55" width="150" height="70" rx="8" fill="#fbe4ef" stroke="#b0155e"/><text x="470" y="80" text-anchor="middle" font-weight="700">FastAPI</text><text x="470" y="98" text-anchor="middle" font-size="11">rules, receipts, roles</text><text x="470" y="113" text-anchor="middle" font-size="11">WeasyPrint PDF</text>
+<rect x="600" y="15" width="155" height="60" rx="8" fill="#e1f4ec" stroke="#0f6b4f"/><text x="677" y="40" text-anchor="middle" font-weight="700">PostgreSQL</text><text x="677" y="58" text-anchor="middle" font-size="11">locks, constraints, trigger</text>
+<rect x="600" y="115" width="155" height="60" rx="8" fill="#fdf1d3" stroke="#8a5a00"/><text x="677" y="140" text-anchor="middle" font-weight="700">Claude API</text><text x="677" y="158" text-anchor="middle" font-size="11">optional; failure is handled</text>
+<line x1="135" y1="90" x2="188" y2="90" stroke="#1b1f4b" marker-end="url(#a)"/>
+<line x1="340" y1="90" x2="393" y2="90" stroke="#1b1f4b" marker-end="url(#a)"/>
+<line x1="545" y1="78" x2="598" y2="52" stroke="#1b1f4b" marker-end="url(#a)"/>
+<line x1="545" y1="102" x2="598" y2="140" stroke="#1b1f4b" stroke-dasharray="5 4" marker-end="url(#a)"/>
+</g></svg>
+<figcaption>The browser only talks to the site. The session cookie stays httpOnly and same-origin, so no CORS is needed for it.</figcaption>
+</figure>
+<ul>
+<li><strong>PostgreSQL</strong> was the choice that mattered most. Gapless numbering depends on row locks and constraints, and I wanted the database itself to refuse a bad state, not only the code.</li>
+<li><strong>A separate Python API</strong> rather than Next.js alone, because WeasyPrint shapes Hindi text correctly in PDFs and the rule engine and checks are easy to test as pure Python. The cost is two deployables.</li>
+<li><strong>A modular monolith.</strong> One team, one database and one deploy unit need nothing more. Queues and services would add failure modes this load does not justify.</li>
+<li><strong>Money is integer paise everywhere,</strong> so rounding cannot move a rupee.</li>
+</ul>
+
+<h2>3. Data model</h2>
+<table>
+<tr><th>Table</th><th>Holds</th><th>Enforced by the database</th></tr>
+<tr><td><code>users</code></td><td>Role, hashed password, encrypted PAN and its masked form</td><td>Case-insensitive unique email; role values</td></tr>
+<tr><td><code>schemes</code></td><td>English and Hindi text, need, districts, source, last checked, <code>rules</code> as data, status</td><td>Status values; unique code</td></tr>
+<tr><td><code>scheme_summaries</code></td><td>Hindi summary, AI or human, check results, approver</td><td>An approved row must record who and when</td></tr>
+<tr><td><code>campaigns</code></td><td>Titles, goal, status</td><td>Status values; positive goal</td></tr>
+<tr><td><code>donations</code></td><td>Donor, campaign, paise, kind, status, failure reason, gateway reference</td><td>Rs 100 floor; unique (donor, idempotency key); unique gateway reference</td></tr>
+<tr><td><code>receipt_counters</code></td><td>Last number used per financial year</td><td>One row per year</td></tr>
+<tr><td><code>receipts</code></td><td>Number plus a snapshot of donor, PAN ciphertext, amount, campaign, trust</td><td>Unique (year, sequence); one per donation; a trigger blocks UPDATE and DELETE</td></tr>
+<tr><td><code>mandates</code></td><td>Monthly gift: amount, status, next charge date</td><td>One per first donation; Rs 100 floor</td></tr>
+<tr><td><code>callback_requests</code></td><td>Phone, optional name, scheme, language, status</td><td>Status and language values</td></tr>
+<tr><td><code>audit_log</code></td><td>Who did what to which record, and when</td><td>Append-only by convention</td></tr>
+</table>
+
+<h2>4. Main flows</h2>
+<h3>Receipts: the riskiest code</h3>
+<p>A number is issued exactly once, only on payment success, and a rollback never burns one. In one transaction, in a fixed lock order:</p>
+<ol>
+<li>Lock the donation row. If it already has a receipt, return that one, which makes replays safe.</li>
+<li>Upsert the financial-year counter. The row stays locked until commit, so numbers cannot skip or repeat.</li>
+<li>Insert the receipt with its snapshot, and mark the donation paid.</li>
+</ol>
+<p>PDFs render from the snapshot, so a re-download is identical for ever. <strong>Evidence:</strong> a test runs 200 payments, each delivered twice at once, and asserts sequence 1 to 200. Replacing the counter with <code>MAX(seq)+1</code> makes it fail, so the test can catch the bug. I also measured it: <strong>1,000 payments at 50 concurrent took 4.2 s, about 236 per second, median 114 ms, and every number was unique and gapless</strong> (one API process and local PostgreSQL on an 8-core Apple M2, no real gateway latency; script in <code>backend/scripts</code>). Treat this as a ceiling on the locking design, not a production figure. It is still several hundred times the roughly 0.5 per second that 5,000 payments in three hours requires.</p>
+<h3>80G: why PAN comes before payment</h3>
+<p>Receipts are immutable, so the PAN has to exist when the snapshot is taken. The form asks for it before payment, explains why, and the pay page gives one more chance. Without a PAN the donor gets a plain receipt that says it is not an 80G certificate. I would rather be honest than print a certificate that does not hold up.</p>
+<h3>Payment and its failures</h3>
+<p>The card outcome is a pure function in the API. Only published test numbers are accepted, so nobody can type a real card. Declined, low-funds and foreign-card attempts record a reason, explain it, and can be retried on the same donation with no duplicate. A real signed webhook path shares the same code, and a paid donation can never be downgraded. A monthly gift opens one mandate; the month in the idempotency key stops an overlapping run from charging twice.</p>
+<h3>Scheme workflow</h3>
+<p>Draft to in review (editor or admin), to published (admin only). A published scheme cannot change in place, so what women see matches what was reviewed. Every transition is audit-logged. Publishing is blocked while a scheme has no rules, because a scheme with no rules would match every woman who uses the finder.</p>
+
+<h2>5. How the AI works, and what happens when it is wrong</h2>
+<p>The principle: <strong>AI may draft and suggest, but it never decides eligibility and never publishes anything.</strong> A wrong rupee figure in a benefit could send a widow on a wasted trip to an office.</p>
+<table>
+<tr><th>Situation</th><th>What happens</th></tr>
+<tr><td colspan="2"><strong>Hindi summary of an official notice</strong></td></tr>
+<tr><td>Model invents or changes a number</td><td>Every number must appear in the notice (handles Devanagari digits, commas and lakh). If not, it is flagged and <strong>cannot be approved</strong></td></tr>
+<tr><td>Output is not Hindi, or too short or long</td><td>Flagged the same way; checks run again on edit and at approval</td></tr>
+<tr><td>Notice tries to instruct the model</td><td>The notice is fenced as data, and fence tags inside it are stripped</td></tr>
+<tr><td>Model off, failing, refusing or cut off</td><td>The editor sees a clear message and writes it by hand, through the same checks and approval</td></tr>
+<tr><td>Everything passes</td><td>Still a draft. Only an editor's approval makes it public</td></tr>
+<tr><td colspan="2"><strong>Typed question mapped to finder answers</strong></td></tr>
+<tr><td>Normal case</td><td>Answers pre-fill a form she can see and change. Then the rule engine runs, not the model</td></tr>
+<tr><td>Claude and the keyword reader disagree</td><td>The field stays blank and is marked unsure, since a wrong pre-filled answer is worse than a question</td></tr>
+<tr><td>Age with no number in her text</td><td>Not trusted, left blank and marked unsure</td></tr>
+<tr><td>Value outside the form (district, age 300)</td><td>Dropped; the other fields are kept</td></tr>
+<tr><td>Model fails or there is no key</td><td>The keyword reader still works; the page words its message differently</td></tr>
+<tr><td>Nothing can be read</td><td>She is told so and fills in the form</td></tr>
+</table>
+<p><strong>The rule engine</strong> is pure and deterministic. Each rule is met, not met or unknown. Any not-met excludes; unknowns give "possibly". An unknown operator raises an error, never a silent pass. The product never says "you qualify". It says "likely eligible", shows every rule in plain words, and every result offers a person to call.</p>
+<p><strong>Limit I want to be plain about:</strong> <!--AILIVE-->the live Claude call has not been run with a real key in this build. It is tested against a fake client covering the request shape, fencing, refusals, cut-off replies and bad JSON. The keyword reader and every failure path were run for real in the browser.<!--/AILIVE--> Text typed into the finder is not stored or logged, and a rate limit also caps spend.</p>
+
+<h2>6. UI and design decisions</h2>
+<p>The first version looked like every generated site: cream, terracotta, a heading and two buttons. The new identity comes from the client's world. The rani pink is a familiar colour of Indian textiles, and the haldi stamp strip is inspired by the block printing of Bagh in Madhya Pradesh. Yatra One, a Devanagari signage face, carries headings; Mukta carries reading text at a generous 18 px. Colours are semantic tokens, so light and dark are the same design.</p>
+<figure><img src="screens/home.png"><figcaption>The finder is the hero, not a link to it. She can start by writing in her own words, in Hindi, with no account.</figcaption></figure>
+<div class="pair">
+<figure class="narrow"><img src="screens/finder-phone.png"><figcaption>One question at a time with large targets. Each answer stamps one block-print motif: progress drawn from the client's craft, and the one bold idea I allowed myself.</figcaption></figure>
+<figure><img src="screens/review.png"><figcaption>After a typed question she sees and can correct everything before any rule runs. This screen is how the AI stays a suggestion.</figcaption></figure>
+</div>
+<figure class="mid"><img src="screens/pay-blocked.png"><figcaption>A failure says what happened, that no money moved, and what to do next. Test mode is stated plainly, and test cards fill in with a tap.</figcaption></figure>
+<figure class="mid"><img src="screens/ai-guard.png"><figcaption>A hand-written or AI summary with a number not in the notice cannot be approved, and the editor is told exactly why.</figcaption></figure>
+<figure class="mid"><img src="screens/rules.png"><figcaption>Editors build rules from plain fields and see the exact Hindi sentence women will read.</figcaption></figure>
+<div class="pair">
+<figure><img src="screens/reports.png"><figcaption>Reports count paid donations only. The CSV masks PAN.</figcaption></figure>
+<figure class="narrow"><img src="screens/account-dark-phone.png"><figcaption>Dark theme on a phone. System, light and dark apply at once with no reload.</figcaption></figure>
+</div>
+<ul>
+<li><strong>Benefit before bureaucracy.</strong> Rows and scheme pages lead with "₹600 a month", since that is what she came to learn.</li>
+<li><strong>Plain reasons.</strong> "Aged 18 to 79, met", never <code>age between [18,79]</code>. A test fails if field names reach the screen.</li>
+<li><strong>Colour never works alone.</strong> Status always has words and ✓ ✕ ? marks.</li>
+<li><strong>Nothing typed is lost.</strong> Failed submits keep every value and name the problem beside the field.</li>
+<li><strong>Staff screens are English,</strong> denser, and show the consequence of each action.</li>
+</ul>
+
+<h2>7. Testing</h2>
+<table>
+<tr><th>Layer</th><th>Count</th><th>Covers</th></tr>
+<tr><td>Backend (pytest, real PostgreSQL, real migrations)</td><td>190</td><td>Receipt concurrency and replay, April rollover, webhook signatures, cards, 80G, mandates, every AI failure above, rule validation, role denials, CSV injection, seed</td></tr>
+<tr><td>Frontend unit (Vitest)</td><td>14</td><td>Question logic, rule wording, safe redirects, rupee format</td></tr>
+<tr><td>Browser (Playwright, production build)</td><td>26</td><td>Every main flow and its failures; axe WCAG A and AA checks in Hindi, English, light and dark; no sideways scroll at 360 px</td></tr>
+</table>
+<p>These tests found real bugs in my own work. A retried payment kept its old failure reason, and successful logins were using up the login limit. ruff and mypy --strict are clean, and <code>npm audit</code> and <code>pip-audit</code> report nothing known. Automated accessibility checks catch only part of the problem; <!--MANUAL-->I have not yet done a full screen-reader pass.<!--/MANUAL--></p>
+
+<h2>8. Security</h2>
+<ul>
+<li><strong>Access:</strong> the role is read from the database on each request, never taken from the client. Another donor's donation answers 404, so ids cannot be probed. Post-login redirects accept same-site paths only.</li>
+<li><strong>Personal data:</strong> PAN is validated, Fernet-encrypted at rest and masked everywhere, including the certificate and CSV. Phone numbers are staff-only. Validation errors never echo what was typed.</li>
+<li><strong>Inputs:</strong> strict models reject unknown fields, all strings are bounded, rules are validated on save, and CSV cells cannot run as formulas.</li>
+<li><strong>Sessions and secrets:</strong> argon2 passwords; httpOnly SameSite cookies; a pinned JWT algorithm. No secret is in the repository, and config is checked at startup, so a bad deployment refuses to boot. The webhook secret left the frontend in this revision.</li>
+</ul>
+
+<h2>9. Assumptions (all labelled)</h2>
+<table>
+<tr><th></th><th>Assumption</th></tr>
+<tr><td>A1</td><td>Scheme data is illustrative: the brief's sample rows plus schemes I invented. Source links point to example.org and are labelled as samples.</td></tr>
+<tr><td>A2</td><td>The nine Madhya Pradesh districts are my choice.</td></tr>
+<tr><td>A3</td><td>The trust's name, PAN, 80G number and helpline number are placeholders.</td></tr>
+<tr><td>A4</td><td>A PAN is required for an 80G certificate; without one the donor gets a plain receipt. The certificate shows PAN masked, a privacy choice the trust's accountant should confirm.</td></tr>
+<tr><td>A5</td><td>The 10BD export is a CSV with common columns, not the official utility format.</td></tr>
+<tr><td>A6</td><td>Foreign cards are blocked because no FCRA registration is assumed. It is simulated by test card and issuing country.</td></tr>
+<tr><td>A7</td><td>Monthly giving is a test-mode mandate. An admin button stands in for a nightly job.</td></tr>
+<tr><td>A8</td><td>Rate limits are per process, and depend on <code>FORWARDED_ALLOW_IPS</code> behind a proxy.</td></tr>
+<tr><td>A9</td><td>Financial year runs April to March; receipts look like <code>RCPT/2026-27/000123</code>.</td></tr>
+<tr><td>A10</td><td>Donors must have an account, since receipts need an identity. The finder needs none.</td></tr>
+<tr><td>A11</td><td>An editor role is added beside admin, so whoever drafts need not be whoever publishes.</td></tr>
+<tr><td>A12</td><td>Staff read English. Public screens are Hindi first.</td></tr>
+</table>
+
+<h2>10. What I cut, and what I would do next</h2>
+<table>
+<tr><th>Cut</th><th>Why, and what it would take</th></tr>
+<tr><td>Real payment gateway</td><td>Needs a merchant account. The webhook path is built for the swap</td></tr>
+<tr><td>SMS or WhatsApp to the helpline team</td><td>Call-backs wait in a staff queue instead</td></tr>
+<tr><td>Spoken Hindi input</td><td>Probably the most valuable next step for low-literacy users</td></tr>
+<tr><td>Campaign editing screens</td><td>Campaigns are seeded; schemes got the admin effort since they are core</td></tr>
+<tr><td>Official 10BD format, Hindi staff screens, shared rate limiter</td><td>Real but not needed to prove the core</td></tr>
+<tr><td>Strict content security policy</td><td>The basic headers are set; a nonce-based policy is the next hardening step</td></tr>
+<tr><td>Automatic deletion of old call-back numbers</td><td>A retention period is the trust's decision. It should be built before real use</td></tr>
+</table>
+<p><strong>Next, in order:</strong> sit with two or three women and the helpline team and watch them use the finder; have the trust's accountant review the certificate wording; connect a real gateway; add voice input; then add alerts for failed payments and model errors.</p>
+</body></html>

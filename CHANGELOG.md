@@ -1,18 +1,30 @@
 # Changelog
 
-All notable changes to this project are documented here, following
-[Keep a Changelog](https://keepachangelog.com).
+Format: [Keep a Changelog](https://keepachangelog.com). Dated, since this is not a versioned release.
 
-## [Unreleased]
+## 2026-11-03
 
 ### Added
-- API skeleton: validated config, RFC 7807 errors, per-request transactions, health and readiness.
-- Database schema with invariants in the DB: immutable receipts, unique receipt numbers per
-  financial year, minimum donation amount, approval-recorded check for summaries.
-- Account auth with roles (donor, editor, admin): argon2 passwords, httpOnly session cookie,
-  login rate limiting, generic auth errors.
-- PAN format validation, masking and encryption at rest.
-- Idempotent seed data: demo accounts, seven illustrative schemes, three campaigns.
-- Receipt issuing: one transaction, gapless numbers per financial year, replay-safe; verified with 200 parallel payments.
-- Donation API (account required, idempotent via `Idempotency-Key`) and HMAC-signed mock gateway webhook that fails closed.
-- PDF receipts, donor donation history, public scheme catalogue and a rule-based eligibility check that shows its reasoning.
+- 80G certificates: PAN entry before payment, encrypted at rest; receipts without a PAN say they are plain.
+- Test-card payment page with declined, low-funds and blocked foreign-card outcomes, and retry.
+- Monthly giving: one mandate per first gift, a repeat-safe charge run, and cancelling from the account.
+- Typed questions in Hindi or English pre-fill the finder; where Claude and the keyword reader disagree the field stays blank.
+- Hand-written summaries, through the same checks and approval as AI drafts.
+- Helpline call-backs on every result, with consent, plus a staff queue.
+- Scheme admin: create, edit every field, build rules, see history. Publishing is blocked until a scheme is complete.
+- Campaign report screen and CSV link. Browsing by need and district. Hindi for all public scheme text.
+- Seed data with a real giving history. Unit tests, browser tests, axe checks and a receipt load script.
+- TDD as a PDF and a script that builds the submission zip.
+
+### Changed
+- New design system, home page led by the finder, and loading, empty and error states throughout.
+- Finder results now explain rules in plain words instead of showing field names and operators.
+- Failed staff actions show the reason in place and keep what was typed.
+- The webhook secret left the frontend: the API now decides test-card outcomes.
+- The default Claude model is now claude-opus-5-5, and refused or cut-off replies count as failures.
+
+### Fixed
+- Successful logins no longer use up the login rate limit.
+
+### Removed
+- The simulate-payment server action.
