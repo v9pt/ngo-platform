@@ -86,4 +86,4 @@ check and build only; no component or end-to-end tests. UI flows were checked by
 ## 10. Known gaps and next steps
 PAN capture UI and certificate; monthly scheduler; real gateway; friendly errors for failed
 editor actions; staff UI in Hindi; automated accessibility and end-to-end tests; shared rate
-limiter; Docker image build and CI not yet run on a real remote.
+limiter. CI (backend, frontend, Docker image build) is green on the pull request.
