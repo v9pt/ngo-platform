@@ -13,3 +13,5 @@ All notable changes to this project are documented here, following
   login rate limiting, generic auth errors.
 - PAN format validation, masking and encryption at rest.
 - Idempotent seed data: demo accounts, seven illustrative schemes, three campaigns.
+- Receipt issuing: one transaction, gapless numbers per financial year, replay-safe; verified with 200 parallel payments.
+- Donation API (account required, idempotent via `Idempotency-Key`) and HMAC-signed mock gateway webhook that fails closed.

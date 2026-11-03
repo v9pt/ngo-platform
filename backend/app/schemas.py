@@ -31,3 +31,25 @@ class UserOut(BaseModel):
     role: Literal["donor", "editor", "admin"]
     preferred_language: Literal["hi", "en"]
     pan_masked: str | None = None
+
+
+class DonationCreate(StrictModel):
+    campaign_slug: str = Field(min_length=1, max_length=80)
+    # Integer paise; the database enforces the same Rs 100 floor.
+    amount_paise: int = Field(ge=10_000, le=10_000_000_00)
+    kind: Literal["one_time", "monthly"] = "one_time"
+
+
+class DonationOut(BaseModel):
+    id: uuid.UUID
+    campaign_slug: str
+    amount_paise: int
+    kind: str
+    status: str
+    gateway_ref: str
+    receipt_number: str | None = None
+
+
+class WebhookEvent(StrictModel):
+    gateway_ref: str = Field(min_length=1, max_length=80)
+    event: Literal["payment.succeeded", "payment.failed"]

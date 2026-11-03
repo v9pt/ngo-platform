@@ -24,6 +24,7 @@ class Config:
     database_url: str
     jwt_secret: str
     pan_encryption_key: str
+    gateway_webhook_secret: str
     cors_origins: tuple[str, ...]
     cookie_secure: bool
     # Trust details printed on receipts and 80G certificates. In this build they
@@ -54,6 +55,10 @@ class Config:
         except (ValueError, TypeError) as exc:
             raise ConfigError("PAN_ENCRYPTION_KEY must be a valid Fernet key") from exc
 
+        webhook_secret = _required(e, "GATEWAY_WEBHOOK_SECRET")
+        if len(webhook_secret) < 32:
+            raise ConfigError("GATEWAY_WEBHOOK_SECRET must be at least 32 characters")
+
         origins = tuple(o.strip() for o in e.get("CORS_ORIGINS", "").split(",") if o.strip())
         if "*" in origins:
             raise ConfigError("CORS_ORIGINS must list explicit origins, never '*'")
@@ -68,6 +73,7 @@ class Config:
             database_url=database_url,
             jwt_secret=jwt_secret,
             pan_encryption_key=pan_key,
+            gateway_webhook_secret=webhook_secret,
             cors_origins=origins,
             cookie_secure=cookie_secure,
             trust_name=e.get("TRUST_NAME", "Demo Mahila Vikas Trust (placeholder)"),

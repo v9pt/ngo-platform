@@ -6,6 +6,7 @@ from app.config import Config, ConfigError
 GOOD = {
     "DATABASE_URL": "postgresql+psycopg://u:p@localhost/db",
     "JWT_SECRET": "x" * 32,
+    "GATEWAY_WEBHOOK_SECRET": "g" * 32,
     "PAN_ENCRYPTION_KEY": Fernet.generate_key().decode(),
 }
 
@@ -16,7 +17,9 @@ def test_valid_config_loads_with_dev_defaults() -> None:
     assert cfg.cookie_secure is False
 
 
-@pytest.mark.parametrize("missing", ["DATABASE_URL", "JWT_SECRET", "PAN_ENCRYPTION_KEY"])
+@pytest.mark.parametrize(
+    "missing", ["DATABASE_URL", "JWT_SECRET", "PAN_ENCRYPTION_KEY", "GATEWAY_WEBHOOK_SECRET"]
+)
 def test_missing_required_value_refuses_to_boot(missing: str) -> None:
     env = {k: v for k, v in GOOD.items() if k != missing}
     with pytest.raises(ConfigError, match=missing):
