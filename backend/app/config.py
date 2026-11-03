@@ -26,6 +26,8 @@ class Config:
     pan_encryption_key: str
     gateway_webhook_secret: str
     cors_origins: tuple[str, ...]
+    anthropic_api_key: str | None
+    summary_model: str
     cookie_secure: bool
     # Trust details printed on receipts and 80G certificates. In this build they
     # are clearly fake placeholders (assumption A3 in the TDD).
@@ -75,6 +77,8 @@ class Config:
             pan_encryption_key=pan_key,
             gateway_webhook_secret=webhook_secret,
             cors_origins=origins,
+            anthropic_api_key=e.get("ANTHROPIC_API_KEY", "").strip() or None,
+            summary_model=e.get("SUMMARY_MODEL", "claude-haiku-5-5"),
             cookie_secure=cookie_secure,
             trust_name=e.get("TRUST_NAME", "Demo Mahila Vikas Trust (placeholder)"),
             trust_pan=e.get("TRUST_PAN", "AAAAA0000A"),

@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
 from app.eligibility import evaluate
-from app.models import Scheme
+from app.models import Scheme, SchemeSummary
 from app.schemas import (
     EligibilityAnswers,
     RuleResultOut,
@@ -67,4 +67,12 @@ async def get_scheme(code: str, session: AsyncSession = Depends(get_session)) ->
     )
     if scheme is None:
         raise HTTPException(status_code=404, detail="Scheme not found.")
-    return SchemeDetailOut.model_validate(scheme, from_attributes=True)
+    summary = await session.scalar(
+        select(SchemeSummary.hindi_text)
+        .where(SchemeSummary.scheme_id == scheme.id, SchemeSummary.status == "approved")
+        .order_by(SchemeSummary.approved_at.desc())
+        .limit(1)
+    )
+    detail = SchemeDetailOut.model_validate(scheme, from_attributes=True)
+    detail.summary_hi = summary
+    return detail

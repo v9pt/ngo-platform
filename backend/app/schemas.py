@@ -67,6 +67,7 @@ class SchemeSummaryOut(BaseModel):
 
 
 class SchemeDetailOut(SchemeSummaryOut):
+    summary_hi: str | None = None
     who_can_apply_en: str
     documents: list[str]
     how_to_apply_en: str
@@ -112,3 +113,39 @@ class CampaignOut(BaseModel):
     description_hi: str
     goal_paise: int | None
     raised_paise: int
+
+
+class AdminSchemeRow(BaseModel):
+    code: str
+    title_en: str
+    title_hi: str
+    status: str
+    notice_text: str
+    benefit_hi: str
+
+
+class SchemeEdit(StrictModel):
+    title_hi: str | None = Field(default=None, max_length=300)
+    benefit_hi: str | None = Field(default=None, max_length=4000)
+    who_can_apply_en: str | None = Field(default=None, max_length=4000)
+    how_to_apply_en: str | None = Field(default=None, max_length=4000)
+    help_centre: str | None = Field(default=None, max_length=1000)
+    notice_text: str | None = Field(default=None, max_length=20000)
+
+
+class Transition(StrictModel):
+    to: Literal["draft", "in_review", "published"]
+
+
+class SummaryOut(BaseModel):
+    id: uuid.UUID
+    scheme_code: str
+    hindi_text: str
+    source: str
+    status: str
+    checks: dict[str, Any]
+    approved_by: uuid.UUID | None = None
+
+
+class SummaryEdit(StrictModel):
+    hindi_text: str = Field(min_length=1, max_length=2000)
