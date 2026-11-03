@@ -59,7 +59,8 @@ jobs:
 
   e2e:
     # The real flows in a real browser, against a production build, the real API and Postgres.
-    runs-on: ubuntu-latest
+    # Pinned: Playwright does not support chromium on the ubuntu-latest image (26.04) yet.
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16
