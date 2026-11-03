@@ -1,6 +1,6 @@
 # Handoff: NGO donation platform and women's schemes finder
 
-Status as of 2026-11-03 (Day 3 of 7 backend work done). Take-home brief #2. Delete this file before final submission.
+Status as of 2026-11-03 (Day 5 of 7 done). Take-home brief #2. Delete this file before final submission.
 
 ## Decisions made
 - Stack: Next.js (TypeScript) + FastAPI + Postgres. Managed Postgres, Docker host for the API, Vercel for the frontend.
@@ -36,6 +36,12 @@ Status as of 2026-11-03 (Day 3 of 7 backend work done). Take-home brief #2. Dele
 ## Done on Day 4 (frontend)
 - `frontend/` now has: theme tokens (light/dark/system, cookie-driven, no flash), Hindi-first i18n dictionary + language toggle (`src/lib/i18n.ts`, server actions in `src/app/actions.ts`), home, `/schemes`, `/schemes/[code]`, `/finder` (client form -> `/api/v1/schemes/check`, shows per-rule reasons). `next.config.ts` rewrites `/api/*` to `API_URL` (same-origin, so session cookies work on Day 5). I removed `cacheComponents`/`partialPrefetching` from the create-next-app config: cookie-driven lang/theme needs dynamic rendering. `npm run lint` and `npm run build` pass; checked in the browser pane (Hindi, dark, widow profile gives 3 matches + 3 possible).
 - Not yet: no frontend tests, no mobile/a11y audit (Day 6), scheme detail text fields beyond title/benefit are English only.
+
+## Done on Day 5 (donation UI + donor account; 88 backend tests)
+- Backend: `GET /v1/campaigns` (live only, `raised_paise` from paid donations).
+- Frontend: `/register`, `/login`, `/account` (history, receipt PDF links, log out), `/donate` (campaigns + progress + form with a per-mount Idempotency-Key), `/donate/pay/[id]` (test-mode "gateway": server action signs the webhook with `GATEWAY_WEBHOOK_SECRET`, owner-checked, refuses if `GATEWAY_MODE=live`). Header shows Donate and Account/Login.
+- Verified in the browser: register -> donate Rs 500 -> simulate payment -> receipt RCPT/2026-27/000001 -> PDF 200 via proxy.
+- Gaps: PAN capture for 80G is not in the UI yet (receipt shows "Not provided"); monthly is a stored kind only (assumption A7, no scheduler yet); no frontend tests; Hindi-first strings for new pages are in but only skimmed.
 
 ## Not done yet
 - No scheme/eligibility endpoints, donation flow, receipt issuing, PDF, CMS, AI summaries, CI, README, Dockerfile, deployment.md, TDD.

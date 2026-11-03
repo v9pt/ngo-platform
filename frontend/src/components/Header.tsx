@@ -2,7 +2,7 @@ import Link from "next/link";
 import { setLang, setTheme } from "@/app/actions";
 import { type Lang, type Theme, t } from "@/lib/i18n";
 
-export function Header({ lang, theme }: { lang: Lang; theme: Theme }) {
+export function Header({ lang, theme, signedIn }: { lang: Lang; theme: Theme; signedIn: boolean }) {
   const d = t(lang);
   return (
     <header className="site">
@@ -11,6 +11,8 @@ export function Header({ lang, theme }: { lang: Lang; theme: Theme }) {
         <nav aria-label="Main">
           <Link href="/schemes">{d.schemes}</Link>
           <Link href="/finder">{d.finder}</Link>
+          <Link href="/donate">{d.donate}</Link>
+          <Link href={signedIn ? "/account" : "/login"}>{signedIn ? d.account : d.login}</Link>
         </nav>
         <div className="controls">
           <form action={setLang}>

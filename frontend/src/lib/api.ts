@@ -34,3 +34,43 @@ export async function getScheme(code: string): Promise<SchemeDetail | null | "er
     return "error";
   }
 }
+
+import { cookies } from "next/headers";
+
+export type Me = { id: string; email: string; full_name: string; role: string };
+export type Campaign = {
+  slug: string; title_en: string; title_hi: string; description_en: string; description_hi: string;
+  goal_paise: number | null; raised_paise: number;
+};
+export type Donation = {
+  id: string; campaign_slug: string; amount_paise: number; kind: string; status: string;
+  gateway_ref: string; receipt_number: string | null;
+};
+
+/** Server-side call that forwards the visitor's session cookie to the API. */
+export async function authedFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const cookie = (await cookies()).toString();
+  return fetch(`${API}${path}`, { ...init, headers: { ...init.headers, cookie }, cache: "no-store" });
+}
+
+export async function getMe(): Promise<Me | null> {
+  try {
+    const r = await authedFetch("/v1/auth/me");
+    return r.ok ? ((await r.json()) as Me) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getCampaigns(): Promise<Campaign[] | null> {
+  try {
+    const r = await fetch(`${API}/v1/campaigns`, { cache: "no-store" });
+    return r.ok ? ((await r.json()) as Campaign[]) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function rupees(paise: number): string {
+  return `₹${new Intl.NumberFormat("en-IN", { minimumFractionDigits: paise % 100 ? 2 : 0 }).format(paise / 100)}`;
+}
