@@ -56,6 +56,7 @@ test("no page scrolls sideways on a 360px phone", async ({ page, context }) => {
   await page.waitForURL("**/admin");
   for (const path of [...PUBLIC, "/account", "/admin", "/admin/schemes/SCH-014", "/admin/callbacks", "/admin/reports"]) {
     await page.goto(path);
+    await page.waitForLoadState("networkidle"); // signed-in visitors to /login are redirected
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, path).toBeLessThanOrEqual(0);
   }

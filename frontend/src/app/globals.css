@@ -1,5 +1,5 @@
-/* Design tokens. The palette comes from Bagh block printing and the rani pink of women's
-   self-help groups in Madhya Pradesh. Components use only these roles, so both themes hold. */
+/* Design tokens. The palette draws on Indian textiles: rani pink, and haldi stamps inspired
+   by Bagh block printing in Madhya Pradesh. Components use only these roles, so both themes hold. */
 :root {
   --bg: #f6f7fb;
   --surface: #ffffff;
@@ -74,6 +74,8 @@ small { font-size: 0.95rem; }
 .wrap { max-width: 70rem; margin-inline: auto; padding-inline: var(--space-4); }
 .stack > * + * { margin-top: var(--space-4); }
 .stack-l > * + * { margin-top: var(--space-6); }
+/* Hidden inputs take no space, so what follows them must not be pushed down as if they did. */
+.stack > input[type="hidden"] + *, .stack-l > input[type="hidden"] + * { margin-top: 0; }
 .muted { color: var(--muted); }
 .measure { max-width: 42rem; }
 .page { padding-block: var(--space-6) var(--space-8); }

@@ -42,8 +42,8 @@ test("the step-by-step path skips what cannot apply and says what is unknown", a
   await page.getByRole("button", { name: "Next", exact: true }).click();
   await page.getByRole("button", { name: "Married" }).click();
   await page.getByRole("button", { name: "Bhopal" }).click();
-  await page.getByRole("button", { name: "Yes" }).click(); // BPL
-  await page.getByRole("button", { name: "No" }).click(); // pregnant: first-child question is skipped
+  await page.getByRole("button", { name: "Yes", exact: true }).click(); // BPL
+  await page.getByRole("button", { name: "No", exact: true }).click(); // pregnant: first-child question is skipped
   await expect(page.getByRole("heading", { name: "Is this your first child?" })).toHaveCount(0);
   await page.getByRole("button", { name: "Not sure" }).click(); // SHG
   await page.getByRole("button", { name: "Not sure" }).click();
