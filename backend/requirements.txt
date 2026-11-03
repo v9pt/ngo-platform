@@ -10,3 +10,4 @@ cryptography==50.0.2
 email-validator==2.3.0
 pydantic==2.14.2
 weasyprint==70.0
+anthropic==2.4.0
