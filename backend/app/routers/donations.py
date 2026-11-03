@@ -19,6 +19,7 @@ from app.config import Config
 from app.db import get_session
 from app.deps import current_user, get_config
 from app.models import Campaign, Donation, Receipt, User
+from app.pdf import render_receipt_pdf
 from app.receipts import DonationNotFound, issue_receipt
 from app.schemas import DonationCreate, DonationOut, WebhookEvent
 
@@ -117,6 +118,29 @@ async def get_donation(
     if donation is None or donation.donor_id != user.id:
         raise HTTPException(status_code=404, detail="Donation not found.")
     return await _load_out(session, donation)
+
+
+@router.get("/v1/donations/{donation_id}/receipt.pdf")
+async def receipt_pdf(
+    donation_id: uuid.UUID,
+    request: Request,
+    user: User = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+) -> Response:
+    receipt = await session.scalar(
+        select(Receipt)
+        .join(Donation, Donation.id == Receipt.donation_id)
+        .where(Donation.id == donation_id, Donation.donor_id == user.id)
+    )
+    if receipt is None:
+        raise HTTPException(status_code=404, detail="Receipt not found.")
+    pdf = await render_receipt_pdf(receipt, request.app.state.pan_cipher)
+    number = receipt.number.replace("/", "-")
+    return Response(
+        pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{number}.pdf"'},
+    )
 
 
 def _signature_ok(secret: str, raw: bytes, header: str | None) -> bool:
