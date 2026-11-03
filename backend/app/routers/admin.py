@@ -6,24 +6,28 @@ scheme is immutable until an admin moves it back to draft. Every transition is a
 
 from __future__ import annotations
 
+import csv
+import io
 import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
 from app.deps import require_roles
-from app.models import AuditLog, Scheme, SchemeSummary, User
+from app.models import AuditLog, Campaign, Donation, Receipt, Scheme, SchemeSummary, User
 from app.schemas import (
     AdminSchemeRow,
+    CampaignReport,
     SchemeEdit,
     SummaryEdit,
     SummaryOut,
     Transition,
 )
+from app.security import mask_pan
 from app.summary_checks import run_checks
 
 router = APIRouter(prefix="/v1/admin", tags=["admin"])
@@ -256,3 +260,88 @@ async def reject_summary(
     _audit(session, actor, "summary.reject", "scheme", scheme.code, {"summary_id": str(summary.id)})
     await session.flush()
     return await _summary_out(session, summary)
+
+
+_admin_only = require_roles("admin")
+
+
+async def _campaign(session: AsyncSession, slug: str) -> Campaign:
+    campaign = await session.scalar(select(Campaign).where(Campaign.slug == slug))
+    if campaign is None:
+        raise HTTPException(status_code=404, detail="Campaign not found.")
+    return campaign
+
+
+@router.get("/campaigns/{slug}/report", response_model=CampaignReport)
+async def campaign_report(
+    slug: str, _: User = Depends(_admin_only), session: AsyncSession = Depends(get_session)
+) -> CampaignReport:
+    campaign = await _campaign(session, slug)
+    rows = await session.execute(
+        select(Donation.status, func.count(), func.coalesce(func.sum(Donation.amount_paise), 0))
+        .where(Donation.campaign_id == campaign.id)
+        .group_by(Donation.status)
+    )
+    by_status = {status: (count, int(total)) for status, count, total in rows.all()}
+    return CampaignReport(
+        slug=slug,
+        paid_count=by_status.get("paid", (0, 0))[0],
+        paid_paise=by_status.get("paid", (0, 0))[1],
+        pending_count=by_status.get("pending", (0, 0))[0],
+        failed_count=by_status.get("failed", (0, 0))[0],
+    )
+
+
+def _csv_safe(value: str) -> str:
+    """Stop spreadsheet apps from running a donor-chosen name as a formula."""
+    return f"'{value}" if value[:1] in ("=", "+", "-", "@", "\t", "\r") else value
+
+
+@router.get("/campaigns/{slug}/donations.csv")
+async def campaign_donations_csv(
+    slug: str,
+    request: Request,
+    actor: User = Depends(_admin_only),
+    session: AsyncSession = Depends(get_session),
+) -> Response:
+    """One row per issued receipt. PAN is masked: the full value never leaves the database
+    except on the owner's own certificate (assumption A5: not the official 10BD utility format)."""
+    campaign = await _campaign(session, slug)
+    cipher = request.app.state.pan_cipher
+    receipts = await session.scalars(
+        select(Receipt)
+        .join(Donation, Donation.id == Receipt.donation_id)
+        .where(Donation.campaign_id == campaign.id)
+        .order_by(Receipt.fy, Receipt.seq)
+    )
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow(
+        [
+            "receipt_number",
+            "receipt_date",
+            "donor_name",
+            "donor_email",
+            "donor_pan",
+            "amount_rupees",
+        ]
+    )
+    for r in receipts.all():
+        pan = mask_pan(cipher.decrypt(r.donor_pan_ciphertext)) if r.donor_pan_ciphertext else ""
+        paise = r.amount_paise
+        writer.writerow(
+            [
+                r.number,
+                r.issued_at.date().isoformat(),
+                _csv_safe(r.donor_name),
+                _csv_safe(r.donor_email),
+                pan,
+                f"{paise // 100}.{paise % 100:02d}",
+            ]
+        )
+    _audit(session, actor, "campaign.export", "campaign", slug, {})
+    return Response(
+        out.getvalue(),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{slug}-donations.csv"'},
+    )

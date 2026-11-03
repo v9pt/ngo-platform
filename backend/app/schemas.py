@@ -149,3 +149,11 @@ class SummaryOut(BaseModel):
 
 class SummaryEdit(StrictModel):
     hindi_text: str = Field(min_length=1, max_length=2000)
+
+
+class CampaignReport(BaseModel):
+    slug: str
+    paid_count: int
+    paid_paise: int
+    pending_count: int
+    failed_count: int
