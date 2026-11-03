@@ -15,3 +15,4 @@ All notable changes to this project are documented here, following
 - Idempotent seed data: demo accounts, seven illustrative schemes, three campaigns.
 - Receipt issuing: one transaction, gapless numbers per financial year, replay-safe; verified with 200 parallel payments.
 - Donation API (account required, idempotent via `Idempotency-Key`) and HMAC-signed mock gateway webhook that fails closed.
+- PDF receipts, donor donation history, public scheme catalogue and a rule-based eligibility check that shows its reasoning.
