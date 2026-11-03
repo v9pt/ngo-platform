@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Config
-from app.db import get_session
+from app.db import db_session
 from app.deps import SESSION_COOKIE, current_user, get_config
 from app.models import User
 from app.ratelimit import RateLimiter
@@ -67,7 +67,7 @@ async def register(
     body: RegisterRequest,
     request: Request,
     response: Response,
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = db_session,
     config: Config = Depends(get_config),
 ) -> UserOut:
     register_limiter.check(_client_key(request))
@@ -99,7 +99,7 @@ async def login(
     body: LoginRequest,
     request: Request,
     response: Response,
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = db_session,
     config: Config = Depends(get_config),
 ) -> UserOut:
     limit_key = f"{_client_key(request)}:{body.email.lower()}"
@@ -124,7 +124,7 @@ async def save_pan(
     body: PanUpdate,
     request: Request,
     user: User = Depends(current_user),
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = db_session,
 ) -> UserOut:
     """Encrypt and store the donor's PAN. Receipts issued from now on become 80G certificates;
     receipts already issued are immutable and keep what they recorded."""

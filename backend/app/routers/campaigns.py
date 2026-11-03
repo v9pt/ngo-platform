@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db import get_session
+from app.db import db_session
 from app.models import Campaign, Donation
 from app.schemas import CampaignOut
 
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/v1/campaigns", tags=["campaigns"])
 
 
 @router.get("", response_model=list[CampaignOut])
-async def list_campaigns(session: AsyncSession = Depends(get_session)) -> list[CampaignOut]:
+async def list_campaigns(session: AsyncSession = db_session) -> list[CampaignOut]:
     raised = func.coalesce(func.sum(Donation.amount_paise), 0)
     rows = await session.execute(
         select(Campaign, raised)

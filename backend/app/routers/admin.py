@@ -18,7 +18,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Config
-from app.db import get_session
+from app.db import db_session
 from app.deps import get_config, require_roles
 from app.eligibility import rule_problem
 from app.mandates import charge_due_mandates
@@ -130,7 +130,7 @@ async def _summary_out(session: AsyncSession, s: SchemeSummary) -> SummaryOut:
 
 @router.get("/schemes", response_model=list[AdminSchemeRow])
 async def list_all(
-    _: User = Depends(_staff), session: AsyncSession = Depends(get_session)
+    _: User = Depends(_staff), session: AsyncSession = db_session
 ) -> list[AdminSchemeRow]:
     return [_row(s) for s in (await session.scalars(select(Scheme).order_by(Scheme.code))).all()]
 
@@ -139,7 +139,7 @@ async def list_all(
 async def create_scheme(
     body: SchemeCreate,
     actor: User = Depends(_staff),
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = db_session,
 ) -> AdminSchemeDetail:
     """Starts as an empty draft. The code is assigned here so editors never have to pick one."""
     codes = await session.scalars(select(Scheme.code))
@@ -166,14 +166,14 @@ async def create_scheme(
 
 @router.get("/schemes/{code}", response_model=AdminSchemeDetail)
 async def get_scheme(
-    code: str, _: User = Depends(_staff), session: AsyncSession = Depends(get_session)
+    code: str, _: User = Depends(_staff), session: AsyncSession = db_session
 ) -> AdminSchemeDetail:
     return _detail(await _scheme(session, code))
 
 
 @router.get("/schemes/{code}/history", response_model=list[AuditEntry])
 async def scheme_history(
-    code: str, _: User = Depends(_staff), session: AsyncSession = Depends(get_session)
+    code: str, _: User = Depends(_staff), session: AsyncSession = db_session
 ) -> list[AuditEntry]:
     rows = await session.execute(
         select(AuditLog, User.full_name)
@@ -193,7 +193,7 @@ async def edit_scheme(
     code: str,
     body: SchemeEdit,
     actor: User = Depends(_staff),
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = db_session,
 ) -> AdminSchemeRow:
     scheme = await _scheme(session, code, lock=True)
     if scheme.status == "published":
@@ -215,7 +215,7 @@ async def transition(
     code: str,
     body: Transition,
     actor: User = Depends(_staff),
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = db_session,
 ) -> AdminSchemeRow:
     scheme = await _scheme(session, code, lock=True)
     allowed = _TRANSITIONS.get((scheme.status, body.to))
@@ -244,7 +244,7 @@ async def transition(
 
 @router.get("/schemes/{code}/summaries", response_model=list[SummaryOut])
 async def list_summaries(
-    code: str, _: User = Depends(_staff), session: AsyncSession = Depends(get_session)
+    code: str, _: User = Depends(_staff), session: AsyncSession = db_session
 ) -> list[SummaryOut]:
     scheme = await _scheme(session, code)
     rows = await session.scalars(
@@ -260,7 +260,7 @@ async def draft_summary(
     code: str,
     request: Request,
     actor: User = Depends(_staff),
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = db_session,
 ) -> SummaryOut:
     generator = getattr(request.app.state, "summary_generator", None)
     if generator is None:
@@ -291,7 +291,7 @@ async def write_summary(
     code: str,
     body: SummaryCreate,
     actor: User = Depends(_staff),
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = db_session,
 ) -> SummaryOut:
     """A summary written by a person: the path when the model is off, failing or wrong. It passes
     through the same checks and the same approval as an AI draft."""
@@ -330,7 +330,7 @@ async def edit_summary(
     summary_id: uuid.UUID,
     body: SummaryEdit,
     actor: User = Depends(_staff),
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = db_session,
 ) -> SummaryOut:
     summary, scheme = await _draft(session, summary_id)
     summary.hindi_text = body.hindi_text.strip()
@@ -344,7 +344,7 @@ async def edit_summary(
 async def approve_summary(
     summary_id: uuid.UUID,
     actor: User = Depends(_staff),
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = db_session,
 ) -> SummaryOut:
     summary, scheme = await _draft(session, summary_id)
     # Re-run now so a stale stored result can never let a bad summary through.
@@ -377,7 +377,7 @@ async def approve_summary(
 async def reject_summary(
     summary_id: uuid.UUID,
     actor: User = Depends(_staff),
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = db_session,
 ) -> SummaryOut:
     summary, scheme = await _draft(session, summary_id)
     summary.status = "rejected"
@@ -411,7 +411,7 @@ def _report(campaign: Campaign, by_status: dict[str, tuple[int, int]]) -> Campai
 
 @router.get("/campaigns", response_model=list[CampaignReport])
 async def all_campaign_reports(
-    _: User = Depends(_admin_only), session: AsyncSession = Depends(get_session)
+    _: User = Depends(_admin_only), session: AsyncSession = db_session
 ) -> list[CampaignReport]:
     rows = await session.execute(
         select(
@@ -430,7 +430,7 @@ async def all_campaign_reports(
 
 @router.get("/campaigns/{slug}/report", response_model=CampaignReport)
 async def campaign_report(
-    slug: str, _: User = Depends(_admin_only), session: AsyncSession = Depends(get_session)
+    slug: str, _: User = Depends(_admin_only), session: AsyncSession = db_session
 ) -> CampaignReport:
     campaign = await _campaign(session, slug)
     rows = await session.execute(
@@ -451,7 +451,7 @@ async def campaign_donations_csv(
     slug: str,
     request: Request,
     actor: User = Depends(_admin_only),
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = db_session,
 ) -> Response:
     """One row per issued receipt. PAN is masked: the full value never leaves the database
     (assumption A5: not the official 10BD utility format)."""
@@ -499,7 +499,7 @@ async def campaign_donations_csv(
 @router.post("/mandates/run", response_model=MandateRunOut)
 async def run_monthly_charges(
     actor: User = Depends(_admin_only),
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = db_session,
     config: Config = Depends(get_config),
 ) -> MandateRunOut:
     """The test-mode scheduler. A real deployment would call this from cron."""
@@ -512,7 +512,7 @@ async def run_monthly_charges(
 
 @router.get("/callbacks", response_model=list[CallbackOut])
 async def list_callbacks(
-    _: User = Depends(_staff), session: AsyncSession = Depends(get_session)
+    _: User = Depends(_staff), session: AsyncSession = db_session
 ) -> list[CallbackOut]:
     rows = await session.scalars(
         select(CallbackRequest)
@@ -526,7 +526,7 @@ async def list_callbacks(
 async def finish_callback(
     callback_id: uuid.UUID,
     actor: User = Depends(_staff),
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = db_session,
 ) -> CallbackOut:
     callback = await session.get(CallbackRequest, callback_id, with_for_update=True)
     if callback is None:

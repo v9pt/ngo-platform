@@ -16,7 +16,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Config
-from app.db import get_session
+from app.db import db_session
 from app.deps import current_user, get_config
 from app.mandates import open_mandate_if_monthly
 from app.mock_gateway import NotATestCard, charge
@@ -51,7 +51,7 @@ async def create_donation(
     response: Response,
     idempotency_key: str = Header(min_length=8, max_length=80),
     user: User = Depends(current_user),
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = db_session,
 ) -> DonationOut:
     campaign = await session.scalar(
         select(Campaign).where(Campaign.slug == body.campaign_slug, Campaign.status == "live")
@@ -105,7 +105,7 @@ async def _load_out(session: AsyncSession, d: Donation) -> DonationOut:
 @router.get("/v1/donations", response_model=list[DonationOut])
 async def list_my_donations(
     user: User = Depends(current_user),
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = db_session,
 ) -> list[DonationOut]:
     rows = await session.execute(
         select(Donation, Campaign, Receipt)
@@ -122,7 +122,7 @@ async def list_my_donations(
 async def get_donation(
     donation_id: uuid.UUID,
     user: User = Depends(current_user),
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = db_session,
 ) -> DonationOut:
     donation = await session.get(Donation, donation_id)
     # 404, not 403, so ids of other donors' donations are not confirmable.
@@ -136,7 +136,7 @@ async def receipt_pdf(
     donation_id: uuid.UUID,
     request: Request,
     user: User = Depends(current_user),
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = db_session,
 ) -> Response:
     receipt = await session.scalar(
         select(Receipt)
@@ -159,7 +159,7 @@ async def test_charge(
     donation_id: uuid.UUID,
     body: TestCharge,
     user: User = Depends(current_user),
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = db_session,
     config: Config = Depends(get_config),
 ) -> DonationOut:
     """The test-mode stand-in for a hosted payment page. A failed attempt can be retried on the
@@ -219,7 +219,7 @@ def _signature_ok(secret: str, raw: bytes, header: str | None) -> bool:
 @router.post("/v1/webhooks/mock-gateway", response_model=DonationOut)
 async def gateway_webhook(
     request: Request,
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = db_session,
     config: Config = Depends(get_config),
     x_signature: str | None = Header(default=None),
 ) -> DonationOut:
@@ -241,7 +241,7 @@ async def gateway_webhook(
 
 @router.get("/v1/mandates", response_model=list[MandateOut])
 async def list_my_mandates(
-    user: User = Depends(current_user), session: AsyncSession = Depends(get_session)
+    user: User = Depends(current_user), session: AsyncSession = db_session
 ) -> list[MandateOut]:
     rows = await session.execute(
         select(Mandate, Campaign)
@@ -256,7 +256,7 @@ async def list_my_mandates(
 async def cancel_mandate(
     mandate_id: uuid.UUID,
     user: User = Depends(current_user),
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = db_session,
 ) -> MandateOut:
     mandate = await session.get(Mandate, mandate_id, with_for_update=True)
     if mandate is None or mandate.donor_id != user.id:

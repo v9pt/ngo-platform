@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db import get_session
+from app.db import db_session
 from app.eligibility import evaluate
 from app.interpret import interpret
 from app.models import CallbackRequest, Scheme, SchemeSummary
@@ -42,7 +42,7 @@ def _rules_with_area(scheme: Scheme) -> list[dict[str, Any]]:
 async def list_schemes(
     need: str | None = None,
     district: str | None = None,
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = db_session,
 ) -> list[SchemeSummaryOut]:
     q = select(Scheme).where(Scheme.status == "published").order_by(Scheme.code)
     if need:
@@ -74,7 +74,7 @@ async def interpret_question(body: InterpretRequest, request: Request) -> Interp
 
 @router.post("/callbacks", status_code=201)
 async def request_callback(
-    body: CallbackCreate, request: Request, session: AsyncSession = Depends(get_session)
+    body: CallbackCreate, request: Request, session: AsyncSession = db_session
 ) -> dict[str, str]:
     callback_limiter.check(_client_key(request))
     session.add(
@@ -91,7 +91,7 @@ async def request_callback(
 
 @router.post("/check", response_model=list[SchemeCheckOut])
 async def check_eligibility(
-    answers: EligibilityAnswers, session: AsyncSession = Depends(get_session)
+    answers: EligibilityAnswers, session: AsyncSession = db_session
 ) -> list[SchemeCheckOut]:
     given = answers.model_dump(exclude_none=True)
     rows = (
@@ -119,7 +119,7 @@ async def check_eligibility(
 
 
 @router.get("/{code}", response_model=SchemeDetailOut)
-async def get_scheme(code: str, session: AsyncSession = Depends(get_session)) -> SchemeDetailOut:
+async def get_scheme(code: str, session: AsyncSession = db_session) -> SchemeDetailOut:
     scheme = await session.scalar(
         select(Scheme).where(Scheme.code == code, Scheme.status == "published")
     )

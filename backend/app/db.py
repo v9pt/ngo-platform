@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 
-from fastapi import Request
+from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -29,3 +29,8 @@ async def get_session(request: Request) -> AsyncIterator[AsyncSession]:
     maker: async_sessionmaker[AsyncSession] = request.app.state.sessionmaker
     async with maker() as session, session.begin():
         yield session
+
+
+# scope="function" commits before the response is sent. The default scope commits afterwards, so a
+# client could hear "done" and read the old row, or be told a payment succeeded and then lose it.
+db_session = Depends(get_session, scope="function")
