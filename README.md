@@ -1,6 +1,6 @@
 # Mahila Vikas Trust: schemes finder and donations
 
-Last updated: 2026-11-03 11:58 AM CST
+Last updated: 2026-11-03 12:20 PM CST
 
 [![CI](https://github.com/v9pt/ngo-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/v9pt/ngo-platform/actions/workflows/ci.yml)
 

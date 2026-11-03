@@ -25,6 +25,7 @@ Format: [Keep a Changelog](https://keepachangelog.com). Dated, since this is not
 
 ### Fixed
 - Successful logins no longer use up the login rate limit.
+- The API now commits before it responds. Before, a page could refresh and read the old row, and a failed commit would already have reported success.
 
 ### Removed
 - The simulate-payment server action.

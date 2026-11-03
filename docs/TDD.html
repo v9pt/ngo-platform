@@ -87,7 +87,7 @@ svg text { font-family: "Noto Sans", Arial, sans-serif; }
 <li>Upsert the financial-year counter. The row stays locked until commit, so numbers cannot skip or repeat.</li>
 <li>Insert the receipt with its snapshot, and mark the donation paid.</li>
 </ol>
-<p>PDFs render from the snapshot, so a re-download is identical for ever. <strong>Evidence:</strong> a test runs 200 payments, each delivered twice at once, and asserts sequence 1 to 200. Replacing the counter with <code>MAX(seq)+1</code> makes it fail, so the test can catch the bug. I also measured it: <strong>1,000 payments at 50 concurrent took 4.2 s, about 236 per second, median 114 ms, and every number was unique and gapless</strong> (one API process and local PostgreSQL on an 8-core Apple M2, no real gateway latency; script in <code>backend/scripts</code>). Treat this as a ceiling on the locking design, not a production figure. It is still several hundred times the roughly 0.5 per second that 5,000 payments in three hours requires.</p>
+<p>PDFs render from the snapshot, so a re-download is identical for ever. <strong>Evidence:</strong> a test runs 200 payments, each delivered twice at once, and asserts sequence 1 to 200. Replacing the counter with <code>MAX(seq)+1</code> makes it fail, so the test can catch the bug. I also measured it: <strong>three runs of 1,000 payments at 50 concurrent each took about 4.1 s, 239 to 245 per second, median about 98 ms, and every number was unique and gapless</strong> (one API process and local PostgreSQL on an 8-core Apple M2, no real gateway latency; script in <code>backend/scripts</code>). Treat this as a ceiling on the locking design, not a production figure. It is still several hundred times the roughly 0.5 per second that 5,000 payments in three hours requires.</p>
 <h3>80G: why PAN comes before payment</h3>
 <p>Receipts are immutable, so the PAN has to exist when the snapshot is taken. The form asks for it before payment, explains why, and the pay page gives one more chance. Without a PAN the donor gets a plain receipt that says it is not an 80G certificate. I would rather be honest than print a certificate that does not hold up.</p>
 <h3>Payment and its failures</h3>
@@ -141,11 +141,11 @@ svg text { font-family: "Noto Sans", Arial, sans-serif; }
 <h2>7. Testing</h2>
 <table>
 <tr><th>Layer</th><th>Count</th><th>Covers</th></tr>
-<tr><td>Backend (pytest, real PostgreSQL, real migrations)</td><td>190</td><td>Receipt concurrency and replay, April rollover, webhook signatures, cards, 80G, mandates, every AI failure above, rule validation, role denials, CSV injection, seed</td></tr>
+<tr><td>Backend (pytest, real PostgreSQL, real migrations)</td><td>192</td><td>Receipt concurrency and replay, April rollover, webhook signatures, cards, 80G, mandates, every AI failure above, rule validation, role denials, CSV injection, seed</td></tr>
 <tr><td>Frontend unit (Vitest)</td><td>14</td><td>Question logic, rule wording, safe redirects, rupee format</td></tr>
 <tr><td>Browser (Playwright, production build)</td><td>26</td><td>Every main flow and its failures; axe WCAG A and AA checks in Hindi, English, light and dark; no sideways scroll at 360 px</td></tr>
 </table>
-<p>These tests found real bugs in my own work. A retried payment kept its old failure reason, and successful logins were using up the login limit. ruff and mypy --strict are clean, and <code>npm audit</code> and <code>pip-audit</code> report nothing known. Automated accessibility checks catch only part of the problem; <!--MANUAL-->I have not yet done a full screen-reader pass.<!--/MANUAL--></p>
+<p>These tests found real bugs in my own work. A retried payment kept its old failure reason, and successful logins were using up the login limit. The most serious showed up only in CI: the API sent its response before committing, because FastAPI runs the cleanup of a default-scope dependency after the response. A page could refresh and read the old row, and a failed commit would already have told a donor "paid". Every route now commits first, a test checks that order, and I re-measured the load figures above. ruff and mypy --strict are clean, and <code>npm audit</code> and <code>pip-audit</code> report nothing known. Automated accessibility checks catch only part of the problem; <!--MANUAL-->I have not yet done a full screen-reader pass.<!--/MANUAL--></p>
 
 <h2>8. Security</h2>
 <ul>
