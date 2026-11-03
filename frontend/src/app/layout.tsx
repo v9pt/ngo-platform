@@ -14,8 +14,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={lang} data-theme={theme === "system" ? undefined : theme}>
       <body>
-        <Header lang={lang} theme={theme} signedIn={me !== null} />
-        <main className="wrap">{children}</main>
+        <Header lang={lang} theme={theme} signedIn={me !== null} staff={me !== null && me.role !== "donor"} />
+        <main id="main" className="wrap">{children}</main>
         <footer className="site">
           <div className="wrap">{t(lang).sampleNote}</div>
         </footer>

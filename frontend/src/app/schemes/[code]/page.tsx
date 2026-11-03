@@ -14,6 +14,7 @@ export default async function SchemePage({ params }: { params: Promise<{ code: s
     <article>
       <p><Link href="/schemes">← {d.back}</Link></p>
       <h1>{lang === "hi" ? s.title_hi : s.title_en}</h1>
+      {lang === "hi" && s.summary_hi && <p className="card" lang="hi">{s.summary_hi}</p>}
       <h2>{d.benefit}</h2>
       <p>{(lang === "hi" && s.benefit_hi) || s.benefit_en}</p>
       <h2>{d.whoCanApply}</h2>

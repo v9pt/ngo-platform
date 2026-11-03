@@ -6,6 +6,7 @@ export type Scheme = {
   districts: string[]; benefit_en: string; benefit_hi: string;
 };
 export type SchemeDetail = Scheme & {
+  summary_hi: string | null;
   who_can_apply_en: string; documents: string[]; how_to_apply_en: string;
   help_centre: string; source_url: string; last_checked: string;
 };
@@ -74,3 +75,9 @@ export async function getCampaigns(): Promise<Campaign[] | null> {
 export function rupees(paise: number): string {
   return `₹${new Intl.NumberFormat("en-IN", { minimumFractionDigits: paise % 100 ? 2 : 0 }).format(paise / 100)}`;
 }
+
+export type AdminScheme = { code: string; title_en: string; title_hi: string; status: string; notice_text: string; benefit_hi: string };
+export type AdminSummary = {
+  id: string; scheme_code: string; hindi_text: string; source: string; status: string;
+  checks: { needs_attention: boolean; unmatched_numbers?: number[]; devanagari_ok?: boolean; length_ok?: boolean };
+};

@@ -92,3 +92,14 @@ h2 { font-size: 1.25rem; margin: 1.5rem 0 0.5rem; }
 .rules li { padding: 0.15rem 0; }
 footer.site { border-top: 1px solid var(--border); padding-block: 1.5rem; color: var(--muted); font-size: 0.9rem; }
 @media (max-width: 40rem) { h1 { font-size: 1.5rem; } }
+
+.skip { position: absolute; left: -999px; top: 0; background: var(--brand); color: var(--brand-contrast); padding: 0.5rem 1rem; z-index: 10; }
+.skip:focus { left: 0.5rem; top: 0.5rem; }
+textarea { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); }
+button:disabled { opacity: 0.55; cursor: not-allowed; }
+@media (max-width: 40rem) {
+  header.site nav { order: 3; flex-basis: 100%; }
+  .controls { flex-wrap: wrap; }
+  .grid { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

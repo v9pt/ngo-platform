@@ -1,6 +1,6 @@
 # Handoff: NGO donation platform and women's schemes finder
 
-Status as of 2026-11-03 (Day 5 of 7 done). Take-home brief #2. Delete this file before final submission.
+Status as of 2026-11-03 (Day 6 of 7 done). Take-home brief #2. Delete this file before final submission.
 
 ## Decisions made
 - Stack: Next.js (TypeScript) + FastAPI + Postgres. Managed Postgres, Docker host for the API, Vercel for the frontend.
@@ -43,6 +43,13 @@ Status as of 2026-11-03 (Day 5 of 7 done). Take-home brief #2. Delete this file 
 - Verified in the browser: register -> donate Rs 500 -> simulate payment -> receipt RCPT/2026-27/000001 -> PDF 200 via proxy.
 - Gaps: PAN capture for 80G is not in the UI yet (receipt shows "Not provided"); monthly is a stored kind only (assumption A7, no scheduler yet); no frontend tests; Hindi-first strings for new pages are in but only skimmed.
 
+## Done on Day 6 (CMS, AI summaries, a11y/mobile; 108 backend tests)
+- `app/routers/admin.py` (editor/admin only, role read from DB): list all schemes, PATCH limited fields (409 when published), transitions draft->in_review (editor/admin), in_review->published / back to draft / unpublish (admin only), all audit-logged. Summaries: list, AI draft, edit (checks re-run), approve (checks re-run, blocked if flagged, retires previous approved), reject.
+- `app/summary_checks.py`: Devanagari ratio >= 0.6, length 40-600, every number must appear in the notice (handles Devanagari digits, commas, lakh). `app/summary_ai.py`: Claude drafts with the notice fenced as data; needs `ANTHROPIC_API_KEY` (not set here, so the live call is **untested**; tests use a stub generator). Without a key the draft endpoint returns 503.
+- Public `GET /v1/schemes/{code}` now includes `summary_hi` (approved only); the scheme page shows it in Hindi mode.
+- Frontend: `/admin` (status table, role-aware workflow buttons) and `/admin/schemes/[code]` (notice editor, draft/edit/approve/reject summaries). Staff UI is English only. Failed server actions surface Next's generic error page (no friendly message yet).
+- A11y/mobile: skip link, main landmark, table captions/scopes, labelled controls, focus ring, reduced-motion, 44px targets, mobile nav wrap. Checked at 375px in the browser; no automated axe run yet.
+
 ## Not done yet
 - No scheme/eligibility endpoints, donation flow, receipt issuing, PDF, CMS, AI summaries, CI, README, Dockerfile, deployment.md, TDD.
 - No GitHub remote yet. Repo must be public with the URL at the top of the TDD.
@@ -76,7 +83,7 @@ COMMIT;
 - Render the PDF from the receipt snapshot with WeasyPrint in a worker thread with a concurrency cap (never on the event loop). Verify WeasyPrint's system packages in the Docker image.
 - Concurrency test: 200 parallel payments, assert no duplicate seq and no gaps; replayed webhook returns the same receipt.
 
-Other planned pieces: eligibility engine (rule ops used in seed: `eq`, `in`, `between`, `gte`; fields: `age`, `marital_status`, `has_bpl_card`, `pregnant`, `first_child`, `shg_member`, `has_school_age_girl`, `owns_pucca_house`, `district`; results are match / possible / excluded with rules shown); AI Hindi summary drafts (fence the notice as data, deterministic checks: mostly Devanagari, length bound, every number in the summary appears in the source, editor must approve); admin CMS with draft -> in_review -> published; campaign report + 10BD-style CSV; donor account with history.
+Other planned pieces: eligibility engine (rule ops used in seed: `eq`, `in`, `between`, `gte`; fields: `age`, `marital_status`, `has_bpl_card`, `pregnant`, `first_child`, `shg_member`, `has_school_age_girl`, `owns_pucca_house`, `district`; results are match / possible / excluded with rules shown); AI Hindi summary drafts (fence the notice as data, deterministic checks: mostly Devanagari, length bound, every number in the summary appears in the source, editor must approve); admin CMS with draft -> in_review -> published; campaign report + 10BD-style CSV (Day 7 or cut); donor account with history.
 
 ## Schedule (remaining)
 Day 2 receipt txn + concurrency test + donation API + mock gateway; Day 3 schemes API + eligibility engine + tests; Day 4 frontend (home, finder, scheme pages, theme tokens); Day 5 donation flow UI + PDF + donor account; Day 6 CMS + AI summaries + a11y/mobile pass; Day 7 CI, deploy, deployment.md, TDD, final QA.
