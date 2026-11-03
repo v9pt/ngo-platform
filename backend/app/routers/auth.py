@@ -8,15 +8,18 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Config
-from app.db import get_session
+from app.db import db_session
 from app.deps import SESSION_COOKIE, current_user, get_config
 from app.models import User
 from app.ratelimit import RateLimiter
-from app.schemas import LoginRequest, RegisterRequest, UserOut
+from app.schemas import LoginRequest, PanUpdate, RegisterRequest, UserOut
 from app.security import (
     SESSION_TTL,
     create_session_token,
     hash_password,
+    is_valid_pan,
+    mask_pan,
+    normalize_pan,
     verify_password,
 )
 
@@ -64,7 +67,7 @@ async def register(
     body: RegisterRequest,
     request: Request,
     response: Response,
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = db_session,
     config: Config = Depends(get_config),
 ) -> UserOut:
     register_limiter.check(_client_key(request))
@@ -96,15 +99,17 @@ async def login(
     body: LoginRequest,
     request: Request,
     response: Response,
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = db_session,
     config: Config = Depends(get_config),
 ) -> UserOut:
-    login_limiter.check(f"{_client_key(request)}:{body.email.lower()}")
+    limit_key = f"{_client_key(request)}:{body.email.lower()}"
+    login_limiter.check(limit_key)
     user = await session.scalar(select(User).where(func.lower(User.email) == body.email.lower()))
     # Always run one hash verification so timing does not reveal whether the email exists.
     ok = verify_password(user.password_hash if user else _DUMMY_HASH, body.password)
     if user is None or not ok:
         raise HTTPException(status_code=401, detail="Incorrect email or password.")
+    login_limiter.forget(limit_key)  # only failures count towards the limit
     _set_session_cookie(response, config, user)
     return _to_out(user)
 
@@ -112,6 +117,24 @@ async def login(
 @router.post("/logout", status_code=204)
 async def logout(response: Response) -> None:
     response.delete_cookie(SESSION_COOKIE, path="/")
+
+
+@router.put("/me/pan", response_model=UserOut)
+async def save_pan(
+    body: PanUpdate,
+    request: Request,
+    user: User = Depends(current_user),
+    session: AsyncSession = db_session,
+) -> UserOut:
+    """Encrypt and store the donor's PAN. Receipts issued from now on become 80G certificates;
+    receipts already issued are immutable and keep what they recorded."""
+    pan = normalize_pan(body.pan)
+    if not is_valid_pan(pan):
+        raise HTTPException(status_code=422, detail="Enter a PAN like ABCDE1234F.")
+    user.pan_ciphertext = request.app.state.pan_cipher.encrypt(pan)
+    user.pan_masked = mask_pan(pan)
+    await session.flush()
+    return _to_out(user)
 
 
 @router.get("/me", response_model=UserOut)

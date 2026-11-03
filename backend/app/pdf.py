@@ -8,21 +8,63 @@ from __future__ import annotations
 
 import asyncio
 from html import escape
+from zoneinfo import ZoneInfo
 
 from app.models import Receipt
 from app.security import PanCipher, mask_pan
 
 _RENDER_SLOTS = asyncio.Semaphore(2)
+IST = ZoneInfo("Asia/Kolkata")
 
 _CSS = """
-@page { size: A4; margin: 24mm 20mm; }
-body { font-family: sans-serif; color: #111; font-size: 11pt; }
-h1 { font-size: 18pt; margin: 0 0 4mm; }
-table { border-collapse: collapse; width: 100%; margin-top: 8mm; }
-td { padding: 2.5mm 0; border-bottom: 1px solid #ccc; vertical-align: top; }
-td:first-child { color: #555; width: 38%; }
-.note { margin-top: 10mm; font-size: 9pt; color: #555; }
+@page { size: A4; margin: 20mm; }
+body {
+  font-family: "Noto Sans Devanagari", "Noto Sans", sans-serif;
+  color: #1b1f4b; font-size: 11pt;
+}
+.band { border-top: 3mm solid #b0155e; padding-top: 5mm; }
+h1 { font-size: 18pt; margin: 0; }
+.kind { font-size: 13pt; font-weight: 700; margin: 6mm 0 0; }
+table { border-collapse: collapse; width: 100%; margin-top: 6mm; }
+td { padding: 2.5mm 0; border-bottom: 0.3mm solid #c9c9d6; vertical-align: top; }
+td:first-child { color: #55587a; width: 38%; }
+.statement { margin-top: 8mm; }
+.note { margin-top: 10mm; font-size: 9pt; color: #55587a; }
 """
+
+_ONES = [
+    *("Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"),
+    *("Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen"),
+    *("Seventeen", "Eighteen", "Nineteen"),
+]
+_TENS = ["", "Ten", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"]
+
+
+def _below_thousand(n: int) -> list[str]:
+    words: list[str] = []
+    if n >= 100:
+        words += [_ONES[n // 100], "Hundred"]
+        n %= 100
+    if n >= 20:
+        words.append(_TENS[n // 10])
+        n %= 10
+    if n:
+        words.append(_ONES[n])
+    return words
+
+
+def rupees_in_words(paise: int) -> str:
+    """Amount in words with Indian grouping, as Indian receipts conventionally show it."""
+    rupees, rem = divmod(paise, 100)
+    words: list[str] = []
+    for size, name in ((10_000_000, "Crore"), (100_000, "Lakh"), (1_000, "Thousand")):
+        if rupees >= size:
+            words += [*_below_thousand(rupees // size), name]
+            rupees %= size
+    words += _below_thousand(rupees)
+    text = " ".join(words) or "Zero"
+    tail = f" and {' '.join(_below_thousand(rem))} Paise" if rem else ""
+    return f"Rupees {text}{tail} only"
 
 
 def format_rupees(paise: int) -> str:
@@ -48,24 +90,41 @@ def receipt_html(receipt: Receipt, cipher: PanCipher) -> str:
         if receipt.donor_pan_ciphertext
         else "Not provided"
     )
+    is_80g = receipt.donor_pan_ciphertext is not None
     rows = [
         ("Receipt number", receipt.number),
-        ("Date", receipt.issued_at.strftime("%d %b %Y")),
+        ("Date", receipt.issued_at.astimezone(IST).strftime("%d %b %Y")),
         ("Received from", receipt.donor_name),
         ("Donor PAN", pan),
         ("Campaign", receipt.campaign_title),
         ("Amount", f"Rs {format_rupees(receipt.amount_paise)}"),
+        ("Amount in words", rupees_in_words(receipt.amount_paise)),
         ("Trust PAN", str(trust.get("pan", ""))),
         ("80G registration", str(trust.get("reg_80g", ""))),
     ]
     body = "".join(f"<tr><td>{escape(k)}</td><td>{escape(v)}</td></tr>" for k, v in rows)
+    kind, statement = (
+        (
+            "Donation receipt and section 80G certificate",
+            "This donation was received by the trust, which is registered under section 80G of "
+            "the Income-tax Act, 1961. No goods or services were given in return.",
+        )
+        if is_80g
+        else (
+            "Donation receipt",
+            "This is a plain receipt. It is not an 80G certificate because no PAN was on file "
+            "when the donation was paid.",
+        )
+    )
     return (
         "<!doctype html><html lang='en'><head><meta charset='utf-8'>"
-        f"<style>{_CSS}</style></head><body>"
-        f"<h1>{escape(str(trust.get('name', '')))}</h1><p>Donation receipt</p>"
+        f"<style>{_CSS}</style></head><body><div class='band'>"
+        f"<h1>{escape(str(trust.get('name', '')))}</h1></div>"
+        f"<p class='kind'>{kind}</p>"
         f"<table>{body}</table>"
-        "<p class='note'>Sample receipt for a demonstration build. "
-        "Trust details are placeholders.</p>"
+        f"<p class='statement'>{statement}</p>"
+        "<p class='note'>Sample document from a demonstration build. Trust details are "
+        "placeholders, and it has no value for tax purposes.</p>"
         "</body></html>"
     )
 

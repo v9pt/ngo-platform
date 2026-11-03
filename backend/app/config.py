@@ -29,6 +29,8 @@ class Config:
     anthropic_api_key: str | None
     summary_model: str
     cookie_secure: bool
+    # "test" enables the card simulator. "live" switches it off once a real gateway exists.
+    gateway_mode: str
     # Trust details printed on receipts and 80G certificates. In this build they
     # are clearly fake placeholders (assumption A3 in the TDD).
     trust_name: str
@@ -70,6 +72,10 @@ class Config:
         if app_env == "prod" and not origins:
             raise ConfigError("CORS_ORIGINS is required in prod")
 
+        gateway_mode = e.get("GATEWAY_MODE", "test")
+        if gateway_mode not in ("test", "live"):
+            raise ConfigError("GATEWAY_MODE must be test or live")
+
         return cls(
             app_env=app_env,  # type: ignore[arg-type]  # narrowed by the check above
             database_url=database_url,
@@ -78,8 +84,9 @@ class Config:
             gateway_webhook_secret=webhook_secret,
             cors_origins=origins,
             anthropic_api_key=e.get("ANTHROPIC_API_KEY", "").strip() or None,
-            summary_model=e.get("SUMMARY_MODEL", "claude-haiku-5-5"),
+            summary_model=e.get("SUMMARY_MODEL", "claude-opus-5-5"),
             cookie_secure=cookie_secure,
+            gateway_mode=gateway_mode,
             trust_name=e.get("TRUST_NAME", "Demo Mahila Vikas Trust (placeholder)"),
             trust_pan=e.get("TRUST_PAN", "AAAAA0000A"),
             trust_80g_reg=e.get("TRUST_80G_REG", "DEMO/80G/0000 (placeholder)"),

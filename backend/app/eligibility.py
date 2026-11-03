@@ -82,3 +82,47 @@ def evaluate(rules: Sequence[Mapping[str, Any]], answers: Mapping[str, Any]) -> 
     else:
         status = "match"
     return Evaluation(status, results)
+
+
+# What each answer field accepts, so a mistyped rule is refused when it is saved, not at check time.
+_BOOL_FIELDS = (
+    "has_bpl_card",
+    "pregnant",
+    "first_child",
+    "shg_member",
+    "has_school_age_girl",
+    "owns_pucca_house",
+)
+MARITAL_STATUSES = ("single", "married", "widow", "divorced", "separated")
+RULE_FIELDS = ("age", "marital_status", "district", *_BOOL_FIELDS)
+
+
+def _is_int(x: Any) -> bool:
+    return isinstance(x, int) and not isinstance(x, bool)
+
+
+def rule_problem(rule: Mapping[str, Any]) -> str | None:
+    """Explain why a rule cannot be saved, or return None when it is valid."""
+    field, op = rule.get("field"), rule.get("op")
+    value: Any = rule.get("value")
+    if field not in RULE_FIELDS:
+        return f"Unknown question: {field!r}."
+    if field == "age":
+        if op == "gte" and _is_int(value) and 0 <= value <= 120:
+            return None
+        if op == "between" and isinstance(value, list) and len(value) == 2:
+            low, high = value
+            if _is_int(low) and _is_int(high) and 0 <= low <= high <= 120:
+                return None
+        return "Age needs a minimum, or a minimum and maximum, between 0 and 120."
+    if field in _BOOL_FIELDS:
+        if op == "eq" and isinstance(value, bool):
+            return None
+        return f"{field} must be yes or no."
+    allowed = MARITAL_STATUSES if field == "marital_status" else None
+    items = value if op == "in" and isinstance(value, list) else [value] if op == "eq" else None
+    if not items or not all(isinstance(x, str) and x for x in items):
+        return f"{field} needs at least one value."
+    if allowed and any(x not in allowed for x in items):
+        return "Marital status has an unknown value."
+    return None

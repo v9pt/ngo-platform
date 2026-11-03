@@ -9,7 +9,7 @@ from fastapi import Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Config
-from app.db import get_session
+from app.db import db_session
 from app.models import User
 from app.security import decode_session_token
 
@@ -23,7 +23,7 @@ def get_config(request: Request) -> Config:
 
 async def current_user(
     request: Request,
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = db_session,
     config: Config = Depends(get_config),
 ) -> User:
     """Resolve the signed-in user from the session cookie, or raise a generic 401.

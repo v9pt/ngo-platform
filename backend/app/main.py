@@ -14,7 +14,7 @@ from app.db import create_engine, create_sessionmaker
 from app.errors import install_error_handlers, problem
 from app.routers import admin, auth, campaigns, donations, schemes
 from app.security import PanCipher
-from app.summary_ai import AnthropicSummaryGenerator
+from app.summary_ai import ClaudeClient
 
 
 def create_app(config: Config | None = None) -> FastAPI:
@@ -43,12 +43,14 @@ def create_app(config: Config | None = None) -> FastAPI:
     app.state.engine = engine
     app.state.sessionmaker = create_sessionmaker(engine)
     app.state.pan_cipher = PanCipher(config.pan_encryption_key)
-    # None disables AI drafting (the endpoint answers 503); tests swap in a stub.
-    app.state.summary_generator = (
-        AnthropicSummaryGenerator(config.anthropic_api_key, config.summary_model)
+    # None means no model: drafting answers 503 and the finder uses its keyword reader.
+    claude = (
+        ClaudeClient(config.anthropic_api_key, config.summary_model)
         if config.anthropic_api_key
         else None
     )
+    app.state.summary_generator = claude
+    app.state.answer_reader = claude
 
     if config.cors_origins:
         app.add_middleware(
