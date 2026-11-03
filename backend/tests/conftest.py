@@ -34,6 +34,7 @@ def make_config(**overrides: str) -> Config:
         "DATABASE_URL": TEST_DB_URL,
         "JWT_SECRET": "test-secret-test-secret-test-secret-1234",
         "PAN_ENCRYPTION_KEY": TEST_PAN_KEY,
+        "GATEWAY_WEBHOOK_SECRET": "test-webhook-secret-test-webhook-secret",
         **overrides,
     }
     return Config.from_env(env)

@@ -12,8 +12,9 @@ from sqlalchemy import text
 from app.config import Config
 from app.db import create_engine, create_sessionmaker
 from app.errors import install_error_handlers, problem
-from app.routers import auth
+from app.routers import admin, auth, campaigns, donations, schemes
 from app.security import PanCipher
+from app.summary_ai import AnthropicSummaryGenerator
 
 
 def create_app(config: Config | None = None) -> FastAPI:
@@ -42,6 +43,12 @@ def create_app(config: Config | None = None) -> FastAPI:
     app.state.engine = engine
     app.state.sessionmaker = create_sessionmaker(engine)
     app.state.pan_cipher = PanCipher(config.pan_encryption_key)
+    # None disables AI drafting (the endpoint answers 503); tests swap in a stub.
+    app.state.summary_generator = (
+        AnthropicSummaryGenerator(config.anthropic_api_key, config.summary_model)
+        if config.anthropic_api_key
+        else None
+    )
 
     if config.cors_origins:
         app.add_middleware(
@@ -54,6 +61,10 @@ def create_app(config: Config | None = None) -> FastAPI:
 
     install_error_handlers(app)
     app.include_router(auth.router)
+    app.include_router(donations.router)
+    app.include_router(schemes.router)
+    app.include_router(campaigns.router)
+    app.include_router(admin.router)
 
     @app.get("/health", tags=["ops"])
     async def health() -> dict[str, str]:
