@@ -102,12 +102,14 @@ async def login(
     session: AsyncSession = Depends(get_session),
     config: Config = Depends(get_config),
 ) -> UserOut:
-    login_limiter.check(f"{_client_key(request)}:{body.email.lower()}")
+    limit_key = f"{_client_key(request)}:{body.email.lower()}"
+    login_limiter.check(limit_key)
     user = await session.scalar(select(User).where(func.lower(User.email) == body.email.lower()))
     # Always run one hash verification so timing does not reveal whether the email exists.
     ok = verify_password(user.password_hash if user else _DUMMY_HASH, body.password)
     if user is None or not ok:
         raise HTTPException(status_code=401, detail="Incorrect email or password.")
+    login_limiter.forget(limit_key)  # only failures count towards the limit
     _set_session_cookie(response, config, user)
     return _to_out(user)
 

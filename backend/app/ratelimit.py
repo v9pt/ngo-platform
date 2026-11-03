@@ -34,5 +34,9 @@ class RateLimiter:
             )
         q.append(now)
 
+    def forget(self, key: str) -> None:
+        """Clear one client's count, so that a successful login does not use up its attempts."""
+        self._events.pop(key, None)
+
     def reset(self) -> None:
         self._events.clear()

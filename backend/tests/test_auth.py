@@ -109,3 +109,13 @@ async def test_ready_round_trips_the_database(client: AsyncClient) -> None:
     r = await client.get("/ready")
     assert r.status_code == 200
     assert r.json() == {"status": "ready"}
+
+
+async def test_successful_logins_do_not_use_up_the_limit(client: AsyncClient) -> None:
+    creds = {"email": "limit@example.org", "password": "a-long-password-1"}
+    await client.post("/v1/auth/register", json={**creds, "full_name": "Limit Test"})
+    for _ in range(15):
+        assert (await client.post("/v1/auth/login", json=creds)).status_code == 200
+    wrong = {**creds, "password": "wrong-password-1"}
+    codes = [(await client.post("/v1/auth/login", json=wrong)).status_code for _ in range(11)]
+    assert codes[-1] == 429
