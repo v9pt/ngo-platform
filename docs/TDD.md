@@ -1,6 +1,6 @@
 # Technical design document
 
-Repository: **<public GitHub URL: not yet created; add before submitting>**
+Repository: https://github.com/v9pt/ngo-platform
 
 ## 1. Goal and scope
 A donation platform for a women's-welfare trust, plus a finder that tells a woman which government
