@@ -139,6 +139,19 @@ async def transition(
     return _row(scheme)
 
 
+@router.get("/schemes/{code}/summaries", response_model=list[SummaryOut])
+async def list_summaries(
+    code: str, _: User = Depends(_staff), session: AsyncSession = Depends(get_session)
+) -> list[SummaryOut]:
+    scheme = await _scheme(session, code)
+    rows = await session.scalars(
+        select(SchemeSummary)
+        .where(SchemeSummary.scheme_id == scheme.id)
+        .order_by(SchemeSummary.created_at.desc(), SchemeSummary.id)
+    )
+    return [await _summary_out(session, s) for s in rows.all()]
+
+
 @router.post("/schemes/{code}/summary-draft", response_model=SummaryOut, status_code=201)
 async def draft_summary(
     code: str,

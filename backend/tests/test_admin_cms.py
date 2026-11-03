@@ -190,3 +190,10 @@ async def test_drafting_needs_a_notice_text(client: AsyncClient, app: Any) -> No
     code = next(r["code"] for r in rows if r["status"] == "in_review")
     await _set_notice(client, code, "")
     assert (await client.post(f"/v1/admin/schemes/{code}/summary-draft")).status_code == 409
+
+
+async def test_editor_lists_summaries_of_a_scheme_newest_first(client: AsyncClient) -> None:
+    await _login(client, "editor")
+    rows = (await client.get("/v1/admin/schemes/SCH-022/summaries")).json()
+    assert [r["source"] for r in rows] == ["ai"] and rows[0]["status"] == "draft"
+    assert (await client.get("/v1/admin/schemes/NOPE/summaries")).status_code == 404
