@@ -85,6 +85,13 @@ class Scheme(Base):
     documents: Mapped[list[str]] = mapped_column(JSONB, nullable=False, server_default=text("'[]'"))
     how_to_apply_en: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
     help_centre: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
+    # Hindi versions of the public text. Empty means the page falls back to English, marked lang=en.
+    who_can_apply_hi: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
+    how_to_apply_hi: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
+    help_centre_hi: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
+    documents_hi: Mapped[list[str]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'[]'")
+    )
     source_url: Mapped[str] = mapped_column(String(500), nullable=False)
     last_checked: Mapped[date] = mapped_column(Date, nullable=False)
     # Eligibility rules as validated data: [{"field","op","value"}, ...]
@@ -169,8 +176,53 @@ class Donation(Base):
     status: Mapped[str] = mapped_column(String(10), nullable=False, server_default="pending")
     gateway_ref: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
     idempotency_key: Mapped[str] = mapped_column(String(80), nullable=False)
+    # Why the last payment attempt failed: declined, insufficient_funds or foreign_card.
+    failure_reason: Mapped[str | None] = mapped_column(String(30))
     created_at: Mapped[datetime] = _created_at()
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Mandate(Base):
+    """Test-mode monthly giving: created by the first paid monthly donation (assumption A7)."""
+
+    __tablename__ = "mandates"
+    __table_args__ = (
+        CheckConstraint("amount_paise >= 10000", name="ck_mandates_min_amount"),
+        CheckConstraint("status IN ('active','cancelled')", name="ck_mandates_status"),
+        Index("ix_mandates_due", "status", "next_charge_on"),
+        Index("ix_mandates_donor", "donor_id"),
+    )
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    donor_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
+    campaign_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("campaigns.id"), nullable=False)
+    # One mandate per first donation, so a replayed payment cannot open a second one.
+    first_donation_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("donations.id"), unique=True, nullable=False
+    )
+    amount_paise: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    status: Mapped[str] = mapped_column(String(10), nullable=False, server_default="active")
+    next_charge_on: Mapped[date] = mapped_column(Date, nullable=False)
+    created_at: Mapped[datetime] = _created_at()
+
+
+class CallbackRequest(Base):
+    """A woman asking the helpline to call her. Holds a phone number: staff-only, never logged."""
+
+    __tablename__ = "callback_requests"
+    __table_args__ = (
+        CheckConstraint("status IN ('new','done')", name="ck_callbacks_status"),
+        CheckConstraint("language IN ('hi','en')", name="ck_callbacks_language"),
+        Index("ix_callbacks_status_created", "status", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    phone: Mapped[str] = mapped_column(String(10), nullable=False)
+    name: Mapped[str] = mapped_column(String(120), nullable=False, server_default="")
+    scheme_code: Mapped[str | None] = mapped_column(String(20))
+    language: Mapped[str] = mapped_column(String(2), nullable=False, server_default="hi")
+    status: Mapped[str] = mapped_column(String(10), nullable=False, server_default="new")
+    created_at: Mapped[datetime] = _created_at()
 
 
 class ReceiptCounter(Base):

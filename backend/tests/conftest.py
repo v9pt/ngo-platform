@@ -19,7 +19,7 @@ from sqlalchemy import text
 from alembic import command
 from app.config import Config
 from app.main import create_app
-from app.routers import auth
+from app.routers import auth, schemes
 
 TEST_DB_URL = os.environ.get(
     "TEST_DATABASE_URL", "postgresql+psycopg://postgres@localhost:5433/ngo_test"
@@ -57,12 +57,14 @@ async def app() -> AsyncIterator[object]:
     async with application.state.engine.begin() as conn:
         await conn.execute(
             text(
-                "TRUNCATE audit_log, receipts, receipt_counters, donations, scheme_summaries, "
+                "TRUNCATE audit_log, callback_requests, mandates, receipts, receipt_counters, donations, scheme_summaries, "
                 "campaigns, schemes, users RESTART IDENTITY CASCADE"
             )
         )
     auth.login_limiter.reset()
     auth.register_limiter.reset()
+    schemes.interpret_limiter.reset()
+    schemes.callback_limiter.reset()
     yield application
     await application.state.engine.dispose()
 

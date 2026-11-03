@@ -12,11 +12,14 @@ from app.db import get_session
 from app.deps import SESSION_COOKIE, current_user, get_config
 from app.models import User
 from app.ratelimit import RateLimiter
-from app.schemas import LoginRequest, RegisterRequest, UserOut
+from app.schemas import LoginRequest, PanUpdate, RegisterRequest, UserOut
 from app.security import (
     SESSION_TTL,
     create_session_token,
     hash_password,
+    is_valid_pan,
+    mask_pan,
+    normalize_pan,
     verify_password,
 )
 
@@ -112,6 +115,24 @@ async def login(
 @router.post("/logout", status_code=204)
 async def logout(response: Response) -> None:
     response.delete_cookie(SESSION_COOKIE, path="/")
+
+
+@router.put("/me/pan", response_model=UserOut)
+async def save_pan(
+    body: PanUpdate,
+    request: Request,
+    user: User = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+) -> UserOut:
+    """Encrypt and store the donor's PAN. Receipts issued from now on become 80G certificates;
+    receipts already issued are immutable and keep what they recorded."""
+    pan = normalize_pan(body.pan)
+    if not is_valid_pan(pan):
+        raise HTTPException(status_code=422, detail="Enter a PAN like ABCDE1234F.")
+    user.pan_ciphertext = request.app.state.pan_cipher.encrypt(pan)
+    user.pan_masked = mask_pan(pan)
+    await session.flush()
+    return _to_out(user)
 
 
 @router.get("/me", response_model=UserOut)
