@@ -12,7 +12,7 @@ from sqlalchemy import text
 from app.config import Config
 from app.db import create_engine, create_sessionmaker
 from app.errors import install_error_handlers, problem
-from app.routers import auth, donations, schemes
+from app.routers import auth, campaigns, donations, schemes
 from app.security import PanCipher
 
 
@@ -56,6 +56,7 @@ def create_app(config: Config | None = None) -> FastAPI:
     app.include_router(auth.router)
     app.include_router(donations.router)
     app.include_router(schemes.router)
+    app.include_router(campaigns.router)
 
     @app.get("/health", tags=["ops"])
     async def health() -> dict[str, str]:

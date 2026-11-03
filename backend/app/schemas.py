@@ -102,3 +102,13 @@ class SchemeCheckOut(BaseModel):
     title_hi: str
     status: Literal["match", "possible", "excluded"]
     rules: list[RuleResultOut]
+
+
+class CampaignOut(BaseModel):
+    slug: str
+    title_en: str
+    title_hi: str
+    description_en: str
+    description_hi: str
+    goal_paise: int | None
+    raised_paise: int
