@@ -40,6 +40,17 @@ svg text { font-family: "Noto Sans", Arial, sans-serif; }
 <tr><td>Tests and basic security</td><td>Sections 7 and 8</td></tr>
 </table>
 
+<h3>How the build maps to the client's success measures</h3>
+<table>
+<tr><th>Client goal (from the brief)</th><th>What in the product serves it</th></tr>
+<tr><td>No manual receipts (₹9 lakh a year)</td><td>Receipt and 80G certificate issue in the payment transaction itself; nobody types a number. Section 4</td></tr>
+<tr><td>Retention from 22% to 32%</td><td>Monthly giving, a donor account with history and certificates, and a receipt that is clear and re-downloadable for ever</td></tr>
+<tr><td>50,000 finder uses in year one</td><td>The finder is the home page hero, needs no account, and works by typing, speaking or one question at a time</td></tr>
+<tr><td>Helpline scheme calls down 40%</td><td>Every result says why, links the official source and last-checked date, and offers a call-back for what the page cannot settle</td></tr>
+<tr><td>Donate in three steps at most, in two minutes</td><td>Gift, Pay, Receipt: a visible three-step strip on every donation screen</td></tr>
+</table>
+<p>These are the client's targets, not results I measured. The product is built so each can be measured later, which is why Section 10 asks to watch real users first.</p>
+
 <h2>2. Architecture and why</h2>
 <figure>
 <svg viewBox="0 0 760 190" xmlns="http://www.w3.org/2000/svg" width="100%">
@@ -112,6 +123,7 @@ svg text { font-family: "Noto Sans", Arial, sans-serif; }
 <tr><td>Value outside the form (district, age 300)</td><td>Dropped; the other fields are kept</td></tr>
 <tr><td>Model fails or there is no key</td><td>The keyword reader still works; the page words its message differently</td></tr>
 <tr><td>Nothing can be read</td><td>She is told so and fills in the form</td></tr>
+<tr><td>She speaks instead of typing</td><td>The "बोलकर बताएँ" button uses the browser's Hindi speech recogniser and puts the words in the same text box. She can edit them, and they take exactly the path above, so a misheard word is corrected on the review screen before any rule runs. The button is hidden where the browser lacks support, and a failed attempt says so and points back to typing</td></tr>
 </table>
 <p><strong>The rule engine</strong> is pure and deterministic. Each rule is met, not met or unknown. Any not-met excludes; unknowns give "possibly". An unknown operator raises an error, never a silent pass. The product never says "you qualify". It says "likely eligible", shows every rule in plain words, and every result offers a person to call.</p>
 <p><strong>Limit I want to be plain about:</strong> <!--AILIVE-->the live Claude call has not been run with a real key in this build. It is tested against a fake client covering the request shape, fencing, refusals, cut-off replies and bad JSON. The keyword reader and every failure path were run for real in the browser.<!--/AILIVE--> Text typed into the finder is not stored or logged, and a rate limit also caps spend.</p>
@@ -142,7 +154,7 @@ svg text { font-family: "Noto Sans", Arial, sans-serif; }
 <table>
 <tr><th>Layer</th><th>Count</th><th>Covers</th></tr>
 <tr><td>Backend (pytest, real PostgreSQL, real migrations)</td><td>192</td><td>Receipt concurrency and replay, April rollover, webhook signatures, cards, 80G, mandates, every AI failure above, rule validation, role denials, CSV injection, seed</td></tr>
-<tr><td>Frontend unit (Vitest)</td><td>14</td><td>Question logic, rule wording, safe redirects, rupee format</td></tr>
+<tr><td>Frontend unit (Vitest)</td><td>17</td><td>Question logic, rule wording, safe redirects, rupee format, voice transcript handling</td></tr>
 <tr><td>Browser (Playwright, production build)</td><td>26</td><td>Every main flow and its failures; axe WCAG A and AA checks in Hindi, English, light and dark; no sideways scroll at 360 px</td></tr>
 </table>
 <p>These tests found real bugs in my own work. A retried payment kept its old failure reason, and successful logins were using up the login limit. The most serious showed up only in CI: the API sent its response before committing, because FastAPI runs the cleanup of a default-scope dependency after the response. A page could refresh and read the old row, and a failed commit would already have told a donor "paid". Every route now commits first, a test checks that order, and I re-measured the load figures above. ruff and mypy --strict are clean, and <code>npm audit</code> and <code>pip-audit</code> report nothing known. Automated accessibility checks catch only part of the problem; <!--MANUAL-->I have not yet done a full screen-reader pass.<!--/MANUAL--></p>
@@ -170,6 +182,7 @@ svg text { font-family: "Noto Sans", Arial, sans-serif; }
 <tr><td>A10</td><td>Donors must have an account, since receipts need an identity. The finder needs none.</td></tr>
 <tr><td>A11</td><td>An editor role is added beside admin, so whoever drafts need not be whoever publishes.</td></tr>
 <tr><td>A12</td><td>Staff read English. Public screens are Hindi first.</td></tr>
+<tr><td>A13</td><td>Spoken input relies on the browser's speech service. In Chrome the audio is processed by the browser vendor's service, not by this product, which stores nothing. The page's privacy line is for typed text, so the trust should add a consent line before launch under the DPDP Act.</td></tr>
 </table>
 
 <h2>10. What I cut, and what I would do next</h2>
@@ -177,11 +190,11 @@ svg text { font-family: "Noto Sans", Arial, sans-serif; }
 <tr><th>Cut</th><th>Why, and what it would take</th></tr>
 <tr><td>Real payment gateway</td><td>Needs a merchant account. The webhook path is built for the swap</td></tr>
 <tr><td>SMS or WhatsApp to the helpline team</td><td>Call-backs wait in a staff queue instead</td></tr>
-<tr><td>Spoken Hindi input</td><td>Probably the most valuable next step for low-literacy users</td></tr>
+<tr><td>A server-side speech model for Hindi</td><td>Voice input uses the browser's recogniser, so it is missing on some phones and browsers. A server model would work everywhere but needs consent, cost and retention decisions</td></tr>
 <tr><td>Campaign editing screens</td><td>Campaigns are seeded; schemes got the admin effort since they are core</td></tr>
 <tr><td>Official 10BD format, Hindi staff screens, shared rate limiter</td><td>Real but not needed to prove the core</td></tr>
 <tr><td>Strict content security policy</td><td>The basic headers are set; a nonce-based policy is the next hardening step</td></tr>
 <tr><td>Automatic deletion of old call-back numbers</td><td>A retention period is the trust's decision. It should be built before real use</td></tr>
 </table>
-<p><strong>Next, in order:</strong> sit with two or three women and the helpline team and watch them use the finder; have the trust's accountant review the certificate wording; connect a real gateway; add voice input; then add alerts for failed payments and model errors.</p>
+<p><strong>Next, in order:</strong> sit with two or three women and the helpline team and watch them use the finder; have the trust's accountant review the certificate wording; test voice input on real low-end phones and in the field; connect a real gateway; then add alerts for failed payments and model errors.</p>
 </body></html>
