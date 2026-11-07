@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { VoiceButton } from "./VoiceButton";
+import { appendSpoken } from "@/lib/voice";
 import { Callback } from "@/components/Callback";
 import { Stamp } from "@/components/Stamp";
 import type { SchemeCheck } from "@/lib/api";
@@ -123,6 +125,8 @@ export function Finder({ d, lang, skipStart = false }: { d: Dict; lang: Lang; sk
           <div className="row" style={{ marginTop: "0.75rem" }}>
             <button type="submit" className="primary" disabled={busy}>{busy ? d.reading : d.typeSubmit}</button>
             <button type="button" onClick={() => { setError(null); setStage("ask"); }}>{d.startQuestions}</button>
+            <VoiceButton lang={lang} onText={(t) => setText((cur) => appendSpoken(cur, t))}
+              labels={{ start: d.voiceStart, stop: d.voiceStop, listening: d.voiceListening, failed: d.voiceFailed, unsupported: d.voiceFailed }} />
           </div>
           <small id="privacy" className="hint">{d.privacy}</small>
         </form>

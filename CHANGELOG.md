@@ -2,6 +2,11 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com). Dated, since this is not a versioned release.
 
+## 2026-11-07
+
+### Added
+- Finder: speak your situation in Hindi (or English) using the browser's speech recognition. The button only appears where the browser supports it; typing and the question flow are unchanged.
+
 ## 2026-11-03
 
 ### Added

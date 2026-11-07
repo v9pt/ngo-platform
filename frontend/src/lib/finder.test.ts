@@ -1,3 +1,4 @@
+import { appendSpoken } from "./voice";
 import { describe, expect, it } from "vitest";
 import { ageError, answerText, describeRule, fromSuggestion, toPayload, visibleQuestions } from "./finder";
 import { fill, isStale, rupees, safeNext } from "./format";
@@ -88,4 +89,10 @@ describe("format", () => {
   it("fill replaces every placeholder", () => {
     expect(fill("{n} of {n} for {who}", { n: 2, who: "Asha" })).toBe("2 of 2 for Asha");
   });
+});
+
+describe("appendSpoken", () => {
+  it("adds speech after typed text", () => expect(appendSpoken("मैं विधवा हूँ", "भोपाल में")).toBe("मैं विधवा हूँ भोपाल में"));
+  it("ignores empty speech", () => expect(appendSpoken("abc", "  ")).toBe("abc"));
+  it("respects the length cap", () => expect(appendSpoken("a".repeat(498), "bcdef", 500)).toHaveLength(500));
 });
