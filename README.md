@@ -1,7 +1,5 @@
 # Mahila Vikas Trust: schemes finder and donations
 
-Last updated: 2026-11-03 12:20 PM CST
-
 [![CI](https://github.com/v9pt/ngo-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/v9pt/ngo-platform/actions/workflows/ci.yml)
 
 A Hindi-first site for a Bhopal women's livelihoods trust. A woman finds the government schemes she
